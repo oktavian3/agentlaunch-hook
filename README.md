@@ -172,6 +172,7 @@ forge test --match-path test/AgentYieldHook.t.sol -vvv
 ## 🔗 Links
 
 - **Dashboard:** agenthook.xyz
+- **Factory (live):** `0x5aaCc3513266EAa21a1f0f79E8dFf39f793B426c` ([X Layer Explorer](https://www.okx.com/explorer/xlayer/address/0x5aaCc3513266EAa21a1f0f79E8dFf39f793B426c))
 - **X Layer Explorer:** https://www.okx.com/explorer/xlayer
 - **Uniswap V4:** https://github.com/Uniswap/v4-core
 - **PoolManager (X Layer):** `0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32`
