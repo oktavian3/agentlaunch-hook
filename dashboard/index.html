@@ -337,25 +337,48 @@ withdraw()     — claims accumulated treasury funds</pre>
         <strong style="color:#fff;font-weight:700">1 HOOK = 1 AGENT = 1 POOL</strong><br>
         Built for <a href="#" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">BUILD X HACKATHON</a> on X Layer.
       </p>
-      <pre>
-┌──────────────────────────┐
-│  AI AGENT                │
-│  · setFee()              │
-│  · heartbeat()           │
-│  · postMessage()         │
-│  · withdraw()            │
-└──────────┬───────────────┘
-           │ owns
-┌──────────▼───────────────┐
-│  AGENTHOOK INSTANCE       │
-│  beforeSwap → fee         │
-│  afterSwap  → treasury    │
-└──────────┬───────────────┘
-           │ attached to
-┌──────────▼───────────────┐
-│  UNISWAP V4 POOL         │
-│  swaps → agent revenue   │
-└──────────────────────────┘</pre>
+      <!-- Architecture diagram -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0;margin:24px 0;position:relative">
+        <!-- AI AGENT block -->
+        <div style="background:linear-gradient(135deg,rgba(0,102,177,.1),rgba(28,105,212,.05));border:1px solid rgba(0,102,177,.25);padding:14px 24px;min-width:280px;text-align:center;position:relative">
+          <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">AI Agent</div>
+          <div style="font-size:11px;color:#bbbbbb;line-height:1.8;font-weight:300">
+            <span style="color:#0066b1">●</span> setFee() &nbsp;
+            <span style="color:#0fa336">●</span> heartbeat() &nbsp;
+            <span style="color:#0fa336">●</span> postMessage()<br>
+            <span style="color:#1c69d4">●</span> withdraw()
+          </div>
+        </div>
+
+        <!-- Arrow down -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin:4px 0;color:#3c3c3c">
+          <svg width="16" height="20" viewBox="0 0 16 20"><line x1="8" y1="0" x2="8" y2="14" stroke="#3c3c3c" stroke-width="1.5"/><polyline points="2,10 8,18 14,10" fill="none" stroke="#3c3c3c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-top:2px">owns</div>
+        </div>
+
+        <!-- AGENTHOOK INSTANCE block -->
+        <div style="background:linear-gradient(135deg,rgba(28,105,212,.1),rgba(0,102,177,.05));border:1px solid rgba(28,105,212,.25);padding:14px 24px;min-width:280px;text-align:center;position:relative">
+          <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">AgentHook Instance</div>
+          <div style="font-size:11px;color:#bbbbbb;line-height:1.8;font-weight:300">
+            <span style="color:#0066b1">beforeSwap</span> <span style="color:#7e7e7e">→</span> fee<br>
+            <span style="color:#1c69d4">afterSwap</span> <span style="color:#7e7e7e">→</span> treasury
+          </div>
+        </div>
+
+        <!-- Arrow down -->
+        <div style="display:flex;flex-direction:column;align-items:center;margin:4px 0;color:#3c3c3c">
+          <svg width="16" height="20" viewBox="0 0 16 20"><line x1="8" y1="0" x2="8" y2="14" stroke="#3c3c3c" stroke-width="1.5"/><polyline points="2,10 8,18 14,10" fill="none" stroke="#3c3c3c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-top:2px">attached to</div>
+        </div>
+
+        <!-- UNISWAP V4 POOL block -->
+        <div style="background:linear-gradient(135deg,rgba(226,39,24,.08),rgba(226,39,24,.03));border:1px solid rgba(226,39,24,.2);padding:14px 24px;min-width:280px;text-align:center;position:relative">
+          <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Uniswap V4 Pool</div>
+          <div style="font-size:11px;color:#bbbbbb;line-height:1.8;font-weight:300">
+            <span style="color:#e22718">swaps</span> <span style="color:#7e7e7e">→</span> agent revenue
+          </div>
+        </div>
+      </div>
       <p style="font-size:12px;color:#7e7e7e;margin-top:16px;line-height:1.8">
         Contract: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">0x3AD2...A749</a><br>
         PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32<br>
