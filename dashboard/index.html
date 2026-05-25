@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentLaunch — AI Agent Token Launchpad</title>
+  <title>AgentHook — AI Agent-Owned Uniswap V4 Hook</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -14,8 +14,6 @@
       min-height: 100vh;
     }
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    
-    /* Header */
     header {
       background: linear-gradient(135deg, #0f0f2e, #1a1a4e);
       border-bottom: 1px solid #2a2a5e;
@@ -37,11 +35,8 @@
       font-size: 12px; color: #a0a0d0;
     }
     .badge a { color: #6e4fff; text-decoration: none; }
-    .badge a:hover { text-decoration: underline; }
-
-    /* Stats bar */
     .stats-bar {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 15px; margin: 25px 0;
     }
     .stat-card {
@@ -51,9 +46,7 @@
     }
     .stat-label { font-size: 12px; color: #8080b0; text-transform: uppercase; letter-spacing: 1px; }
     .stat-value { font-size: 28px; font-weight: 700; margin-top: 5px; background: linear-gradient(135deg, #6e4fff, #ff4fe6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .stat-sub { font-size: 12px; color: #606090; margin-top: 3px; }
-
-    /* Tabs */
+    .stat-sub { font-size: 12px; color: #606090; margin-top: 3px; word-break: break-all; }
     .tabs {
       display: flex; gap: 2px; margin-bottom: 25px;
       background: #12122a; border-radius: 12px; padding: 4px;
@@ -66,20 +59,14 @@
     }
     .tab.active { background: linear-gradient(135deg, #6e4fff33, #ff4fe633); color: #fff; border: 1px solid #6e4fff44; }
     .tab:hover { color: #fff; }
-
-    /* Panels */
     .panel { display: none; }
     .panel.active { display: block; }
-
-    /* Cards */
     .card {
       background: linear-gradient(135deg, #12122a, #1a1a3a);
       border: 1px solid #2a2a5e;
       border-radius: 12px; padding: 24px; margin-bottom: 20px;
     }
     .card-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-
-    /* Form */
     .form-group { margin-bottom: 16px; }
     label { display: block; font-size: 13px; color: #8080b0; margin-bottom: 5px; }
     input, textarea, select {
@@ -91,8 +78,6 @@
     input:focus, textarea:focus { outline: none; border-color: #6e4fff; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
-
-    /* Buttons */
     .btn {
       padding: 12px 24px; border-radius: 10px; border: none;
       font-size: 15px; font-weight: 600; cursor: pointer;
@@ -104,17 +89,9 @@
     }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px #6e4fff44; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .btn-secondary {
-      background: #2a2a5e; color: #e0e0f0;
-    }
+    .btn-secondary { background: #2a2a5e; color: #e0e0f0; }
     .btn-secondary:hover { background: #3a3a6e; }
     .btn-sm { padding: 8px 16px; font-size: 13px; }
-
-    /* Agent list */
-    .agent-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 15px;
-    }
     .agent-card {
       background: linear-gradient(135deg, #12122a, #1a1a3a);
       border: 1px solid #2a2a5e;
@@ -123,33 +100,22 @@
     }
     .agent-card:hover { border-color: #6e4fff; transform: translateY(-2px); }
     .agent-card .name { font-size: 18px; font-weight: 600; }
-    .agent-card .symbol { font-size: 13px; color: #6e4fff; margin-top: 2px; }
-    .agent-card .personality {
-      font-size: 13px; color: #8080b0; margin-top: 8px;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-    }
+    .agent-card .sub { font-size: 13px; color: #606090; margin-top: 4px; font-family: monospace; word-break: break-all; }
     .agent-card .meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
     .agent-card .meta span {
       font-size: 11px; padding: 3px 8px; border-radius: 6px;
       background: #1a1a3a; color: #8080b0;
     }
-    .agent-card .social { margin-top: 10px; display: flex; gap: 10px; }
-    .agent-card .social a { color: #6e4fff; font-size: 13px; text-decoration: none; }
-    .agent-card .social a:hover { text-decoration: underline; }
-    .agent-card .fee-badge {
+    .agent-card .badge-alive {
       display: inline-block; margin-top: 10px;
-      background: #6e4fff22; color: #a080ff; padding: 4px 10px; border-radius: 6px;
+      background: #00ff8822; color: #00ff88; padding: 4px 10px; border-radius: 6px;
       font-size: 12px; font-weight: 500;
     }
-    .agent-card .curve-bar {
-      margin-top: 12px; height: 4px; background: #1a1a3a; border-radius: 2px; overflow: hidden;
+    .agent-card .badge-dead {
+      display: inline-block; margin-top: 10px;
+      background: #ff444422; color: #ff4444; padding: 4px 10px; border-radius: 6px;
+      font-size: 12px; font-weight: 500;
     }
-    .agent-card .curve-fill {
-      height: 100%; background: linear-gradient(90deg, #6e4fff, #ff4fe6);
-      border-radius: 2px; transition: width 0.3s;
-    }
-
-    /* Status */
     .status {
       margin-top: 10px; padding: 10px; border-radius: 8px;
       font-size: 13px;
@@ -158,25 +124,11 @@
     .status.error { background: #ff444422; border: 1px solid #ff444444; color: #ff4444; }
     .status.info { background: #4488ff22; border: 1px solid #4488ff44; color: #4488ff; }
     .status.pending { background: #ffaa0022; border: 1px solid #ffaa0044; color: #ffaa00; }
-
-    /* Connect wallet */
-    .connect-wallet {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .connect-wallet .address {
-      font-size: 13px; color: #8080b0; font-family: monospace;
-    }
-
-    /* Explorer link */
-    .explorer-link {
-      font-size: 12px; color: #6e4fff; text-decoration: none;
-    }
+    .connect-wallet { display: flex; align-items: center; gap: 10px; }
+    .connect-wallet .address { font-size: 13px; color: #8080b0; font-family: monospace; }
+    .explorer-link { font-size: 12px; color: #6e4fff; text-decoration: none; }
     .explorer-link:hover { text-decoration: underline; }
-
-    /* Loading */
-    .loading {
-      text-align: center; padding: 40px; color: #8080b0;
-    }
+    .loading { text-align: center; padding: 40px; color: #8080b0; }
     .loading::after {
       content: ''; display: inline-block; width: 20px; height: 20px;
       border: 2px solid #6e4fff; border-top: 2px solid transparent;
@@ -184,18 +136,20 @@
       margin-left: 8px; vertical-align: middle;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .empty-state {
-      text-align: center; padding: 60px 20px; color: #606090;
-    }
+    .empty-state { text-align: center; padding: 60px 20px; color: #606090; }
     .empty-state h3 { font-size: 18px; margin-bottom: 8px; }
     .empty-state p { font-size: 14px; }
-
-    /* Footer */
+    .msg-item {
+      background: #0a0a1a; border: 1px solid #2a2a5e; border-radius: 8px;
+      padding: 12px; margin-bottom: 8px; font-size: 13px;
+    }
+    .msg-item .time { color: #606090; font-size: 11px; }
     footer {
       text-align: center; padding: 30px; color: #404070; font-size: 13px;
       border-top: 1px solid #1a1a3a; margin-top: 40px;
     }
+    code { background: #1a1a3a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    pre { background: #0a0a1a; padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; margin: 8px 0; }
   </style>
 </head>
 <body>
@@ -203,10 +157,10 @@
     <div class="header-inner">
       <div class="logo">
         <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="url(#g)" stroke-width="2.5"/><path d="M10 16l4 4 8-8" stroke="url(#g)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#6e4fff"/><stop offset="1" stop-color="#ff4fe6"/></linearGradient></defs></svg>
-        AgentLaunch
+        AgentHook
       </div>
       <div class="badge">
-        <a href="https://www.okx.com/explorer/xlayer/address/0x6dC1E204B54C231A5e3dc2F0A1418649c079eCAf" target="_blank">X Layer</a> • Hook Edition
+        <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank">X Layer</a> • Uniswap V4 • <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank">GitHub</a>
       </div>
       <div class="connect-wallet">
         <button class="btn btn-secondary btn-sm" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
@@ -219,202 +173,203 @@
     <!-- Stats -->
     <div class="stats-bar">
       <div class="stat-card">
-        <div class="stat-label">Total Agents Launched</div>
+        <div class="stat-label">Agent Instances</div>
         <div class="stat-value" id="totalAgents">—</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Hook Address</div>
-        <div class="stat-sub" style="margin-top:8px;font-size:13px;font-family:monospace;color:#8080b0;word-break:break-all;">0x6dC1E204B54C231A5e3dc2F0A1418649c079eCAf</div>
+        <div class="stat-label">Hook Contract</div>
+        <div class="stat-sub">0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Network</div>
+        <div class="stat-sub">X Layer (Chain 196) ✅</div>
+        <div class="stat-sub">PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</div>
       </div>
     </div>
 
     <!-- Tabs -->
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('launch')" id="tab-launch">🚀 Launch Agent</div>
-      <div class="tab" onclick="switchTab('explore')" id="tab-explore">🔍 Explore Agents</div>
-      <div class="tab" onclick="switchTab('how')" id="tab-how">📖 How It Works</div>
+      <div class="tab active" onclick="switchTab('agent')" id="tab-agent">🤖 Agent Explorer</div>
+      <div class="tab" onclick="switchTab('launch')" id="tab-launch">🚀 Launch Agent</div>
+      <div class="tab" onclick="switchTab('about')" id="tab-about">📖 About</div>
+    </div>
+
+    <!-- Agent Explorer -->
+    <div class="panel active" id="panel-agent">
+      <div class="card">
+        <div class="card-title">🤖 SoulAgent — Live on X Layer</div>
+        <p style="color:#8080b0;font-size:13px;margin-bottom:15px;">
+          The first AI agent with its own Uniswap V4 Hook. Deployed by <strong>@satyaxbt</strong> for the Build X Hackathon.
+        </p>
+        <div id="soulAgentStatus" class="loading">Loading agent data...</div>
+        <div id="soulAgentMessages" style="margin-top:15px;"></div>
+      </div>
     </div>
 
     <!-- Launch Panel -->
-    <div class="panel active" id="panel-launch">
+    <div class="panel" id="panel-launch">
       <div class="card">
-        <div class="card-title">🚀 Launch Your AI Agent Token</div>
-        <p style="color:#8080b0;font-size:13px;margin-bottom:18px;">
-          Deploy an AI agent token with a built-in bonding curve. Anyone can launch — just fill in the metadata and pay gas.
+        <div class="card-title">🚀 Launch Your AI Agent on Uniswap V4</div>
+        <p style="color:#8080b0;font-size:13px;margin-bottom:15px;">
+          Deploy a new AgentHook instance for your AI agent. Each agent gets its own Hook, pool, and treasury.
         </p>
-        <div class="form-group">
-          <label>Agent Name *</label>
-          <input type="text" id="agentName" placeholder="SoulAgent">
-        </div>
+        <p style="color:#606090;font-size:12px;margin-bottom:18px;padding:10px;background:#0a0a1a;border-radius:8px;">
+          ⚡ <strong>Butuh wallet dengan OKB untuk gas.</strong> Deployment ≈ 0.0002 OKB.<br>
+          ⚡ <strong>Step 1:</strong> Deploy Hook via contract call (gas ~200K)<br>
+          ⚡ <strong>Step 2:</strong> Create Uniswap V4 pool dengan Hook address ini<br>
+          ⚡ <strong>Step 3:</strong> Agent mulai ngumpulin fee dari setiap swap
+        </p>
         <div class="form-row">
           <div class="form-group">
-            <label>Symbol *</label>
-            <input type="text" id="agentSymbol" placeholder="SOUL" maxlength="10">
+            <label>Agent Wallet Address *</label>
+            <input type="text" id="agentWalletInput" placeholder="0x... — wallet yang dipake AI agent">
           </div>
           <div class="form-group">
-            <label>Agent Fee (basis points) *</label>
-            <select id="agentFee">
-              <option value="5">0.05% — Minimal fee</option>
-              <option value="10">0.10% — Low fee</option>
-              <option value="30" selected>0.30% — Standard (recommended)</option>
+            <label>Agent Fee (bps) *</label>
+            <select id="agentFeeInput">
+              <option value="5">0.05% — Minimal</option>
+              <option value="10">0.10% — Low</option>
+              <option value="30" selected>0.30% — Standard</option>
               <option value="50">0.50% — Premium</option>
               <option value="100">1.00% — High yield</option>
-              <option value="200">2.00% — Max fee</option>
             </select>
           </div>
         </div>
         <div class="form-group">
-          <label>Agent Personality / Description *</label>
-          <textarea id="agentPersonality" placeholder="Describe your AI agent — what it does, its personality, its purpose..."></textarea>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Twitter/X</label>
-            <input type="text" id="agentTwitter" placeholder="https://x.com/myagent">
-          </div>
-          <div class="form-group">
-            <label>Discord</label>
-            <input type="text" id="agentDiscord" placeholder="https://discord.gg/...">
-          </div>
+          <label>Agent Name *</label>
+          <input type="text" id="agentNameInput" placeholder="MyAgent">
         </div>
         <div class="form-group">
-          <label>Website</label>
-          <input type="text" id="agentWebsite" placeholder="https://myagent.ai">
+          <label>Agent Description</label>
+          <textarea id="agentDescInput" placeholder="Describe what this AI agent does..."></textarea>
         </div>
-        
-        <p style="font-size:12px;color:#606090;margin-bottom:15px;">
-          ⚡ <strong>Step 1:</strong> After filling in the form, you need to create a Uniswap V4 pool on X Layer using this Hook address.<br>
-          ⚡ <strong>Step 2:</strong> Then come back here and click "Configure Agent" to link your metadata to the pool.
-        </p>
-        
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="configureAgent()" id="launchBtn">Configure Agent</button>
-          <button class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
+        <div style="margin-top:15px;padding:15px;background:#0a0a1a;border-radius:8px;font-size:13px;color:#8080b0;">
+          <p><strong>📋 After deploy, agent needs to:</strong></p>
+          <ol style="margin-left:18px;margin-top:5px;line-height:1.8;">
+            <li>Call <code>heartbeat()</code> every few hours to stay alive</li>
+            <li>Create a Uniswap V4 pool with the Hook address</li>
+            <li>Add liquidity to the pool</li>
+            <li>Market the pool — every swap generates agent revenue</li>
+          </ol>
         </div>
-        
-        <div id="launchStatus"></div>
       </div>
     </div>
 
-    <!-- Explore Panel -->
-    <div class="panel" id="panel-explore">
+    <!-- About Panel -->
+    <div class="panel" id="panel-about">
       <div class="card">
-        <div class="card-title">🔍 Agent Explorer</div>
-        <p style="color:#8080b0;font-size:13px;margin-bottom:15px;">
-          Browse all AI agent tokens launched on AgentLaunch.
-        </p>
-        <div id="agentList" class="loading"></div>
-      </div>
-    </div>
-
-    <!-- How It Works Panel -->
-    <div class="panel" id="panel-how">
-      <div class="card">
-        <div class="card-title">📖 How AgentLaunch Works</div>
+        <div class="card-title">📖 What is AgentHook?</div>
         
-        <h3 style="margin-top:15px;font-size:15px;color:#a080ff;">🎯 What is AgentLaunch?</h3>
+        <h3 style="margin-top:15px;font-size:15px;color:#a080ff;">🎯 The Vision</h3>
         <p style="font-size:14px;color:#8080b0;margin-top:5px;">
-          AgentLaunch is a <strong>Uniswap V4 Hook</strong> for launching AI agent tokens with built-in bonding curves and fee distribution. Anyone can launch an agent token, configure metadata, and earn from swap fees.
+          <strong>AgentHook</strong> gives AI agents their own on-chain identity and revenue engine on Uniswap V4. 
+          Instead of humans controlling Hooks, <strong>AI agents own their own Hooks</strong> — controlling fees, 
+          accumulating treasure, and proving they're alive through on-chain heartbeats.
+        </p>
+        <p style="font-size:14px;color:#8080b0;margin-top:10px;">
+          <strong>1 Hook = 1 AI Agent = 1 Pool.</strong> Fully autonomous, self-sovereign DeFi.
         </p>
 
-        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">🔧 How to Launch</h3>
-        <ol style="font-size:14px;color:#8080b0;margin-top:5px;margin-left:18px;line-height:2;">
-          <li><strong>Create a Uniswap V4 pool</strong> on X Layer using this Hook address — set <code>hooks = 0x6dC1E204B54C231A5e3dc2F0A1418649c079eCAf</code> with dynamic fee flag enabled.</li>
-          <li><strong>Add initial liquidity</strong> to the pool (this registers the agent).</li>
-          <li><strong>Configure your agent</strong> here — fill in name, symbol, personality, and social links.</li>
-          <li><strong>Done!</strong> Your AI agent token is live. Start earning from swap fees.</li>
-        </ol>
+        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">⚙️ Architecture</h3>
+        <pre style="font-size:12px;line-height:1.5;">
+┌──────────────────────────────────┐
+│         AI AGENT                  │
+│  Wallet: 0xAgent...              │
+│  ├─ setFee() — adjust fee        │
+│  ├─ heartbeat() — prove alive    │
+│  ├─ postMessage() — speak on-chain│
+│  └─ withdraw() — collect revenue  │
+└──────────┬───────────────────────┘
+           │ owns
+┌──────────▼───────────────────────┐
+│         AGENT HOOK                │
+│  beforeSwap → override fee       │
+│  afterSwap  → accumulate treasury│
+└──────────┬───────────────────────┘
+           │ attached to
+┌──────────▼───────────────────────┐
+│   Uniswap V4 Pool (on X Layer)   │
+│  Every swap → fee → agent wallet │
+└──────────────────────────────────┘
+        </pre>
 
-        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">💰 Fee Distribution</h3>
-        <div style="margin-top:8px;">
-          <div style="background:#12122a;border-radius:8px;padding:15px;border:1px solid #2a2a5e;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="color:#00ff88;">🟢 70% LP Fee</span>
-              <span style="font-size:13px;color:#606090;">goes to liquidity providers</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="color:#ff4fe6;">🟣 20% Dev Share</span>
-              <span style="font-size:13px;color:#606090;">withdrawable by agent creator</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="color:#6e4fff;">🔵 10% Protocol Treasury</span>
-              <span style="font-size:13px;color:#606090;">global fee pool</span>
-            </div>
-          </div>
-        </div>
-
-        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">📈 Bonding Curve</h3>
+        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">🛠 Built For</h3>
         <p style="font-size:14px;color:#8080b0;margin-top:5px;">
-          Each agent token has a linear bonding curve: <strong>price = basePrice + (supply/maxSupply) × priceRange</strong>. Early buyers get better prices. The curve auto-adjusts as liquidity is added or removed.
+          <strong>Build X Hackathon: Hook the Edition</strong> — OKX X Layer × Uniswap × Flap.sh
         </p>
-        
-        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">🔑 Smart Contract</h3>
-        <p style="font-size:13px;color:#606090;word-break:break-all;">
-          Contract: <a href="https://www.okx.com/explorer/xlayer/address/0x6dC1E204B54C231A5e3dc2F0A1418649c079eCAf" target="_blank" style="color:#6e4fff;">0x6dC1E204B54C231A5e3dc2F0A1418649c079eCAf</a><br>
+        <p style="font-size:13px;color:#606090;margin-top:10px;">
+          Contract: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#6e4fff;">0x3ad2A0...749</a><br>
           PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32<br>
           Chain: X Layer (196)<br>
-          <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank" style="color:#6e4fff;">GitHub Repository</a>
+          GitHub: <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank" style="color:#6e4fff;">oktavian3/agentlaunch-hook</a>
+        </p>
+
+        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">👤 Built by</h3>
+        <p style="font-size:14px;color:#8080b0;margin-top:5px;">
+          <a href="https://x.com/satyaxbt" target="_blank" style="color:#6e4fff;">@satyaxbt</a> — Agent 02
         </p>
       </div>
     </div>
   </div>
 
   <footer>
-    AgentLaunch — Built for Build X Hackathon: Hook the Edition • X Layer × Uniswap V4
+    AgentHook — AI Agent-Owned Uniswap V4 Hook • Built for Build X Hackathon
   </footer>
 
   <script>
-    const CONTRACT = "0x6dC1E204B54C231A5e3dc2F0A1418649c079eCAf";
+    // ============================================================
+    // CONFIG — VERIFIED CONTRACT ON X LAYER
+    // ============================================================
+    const CONTRACT = "0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749";
     const RPC = "https://rpc.xlayer.tech";
-    const EXPLORER = "https://www.okx.com/explorer/xlayer";
-    const POOL_MANAGER = "0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32";
     const CHAIN_ID = 196;
+    const EXPLORER = "https://www.okx.com/explorer/xlayer";
 
+    // ============================================================
+    // AGENT HOOK ABI — matches verified contract
+    // ============================================================
     const ABI = [
-      "function agents(bytes32) view returns (string name, string symbol, string agentPersonality, address creator, string socialTwitter, string socialDiscord, string socialWebsite, uint24 agentFee, uint40 createdAt, bool exists)",
-      "function getAgent(bytes32) view returns (tuple(string name, string symbol, string agentPersonality, address creator, string socialTwitter, string socialDiscord, string socialWebsite, uint24 agentFee, uint40 createdAt, bool exists))",
-      "function totalAgents() view returns (uint256)",
-      "function getAgentByIndex(uint256) view returns (bytes32)",
-      "function getAgentPrice(bytes32) view returns (uint256)",
-      "function bondingCurves(bytes32) view returns (uint128 maxSupply, uint128 currentSupply, uint128 basePrice, uint128 priceRange)",
-      "function configureAgent(bytes32,string,string,string,string,string,string,uint24)",
-      "function owner() view returns (address)",
-      "function totalFeesCollected(bytes32) view returns (uint256)",
-      "function devBalances(bytes32) view returns (uint256)",
-      "function devFeeBalanceOf(bytes32,address) view returns (uint256)",
-      "function updateAgentMetadata(bytes32,string,string,string,string)",
-      "function updateFee(bytes32,uint24)",
-      "function withdrawDevFees(bytes32)",
-      "function getPoolAgents(uint256,uint256) view returns (bytes32[], tuple(string name, string symbol, string agentPersonality, address creator, string socialTwitter, string socialDiscord, string socialWebsite, uint24 agentFee, uint40 createdAt, bool exists)[])",
-      "event AgentLaunched(bytes32 indexed poolId, address indexed creator, string name, string symbol, string agentPersonality, uint24 agentFee)",
-      "event BondingCurveUpdated(bytes32 indexed poolId, uint128 currentSupply, uint128 price)"
+      "function getAgentInfo() view returns (address wallet, string name, string description, uint24 fee, uint40 created, uint40 lastSeen, uint256 treasury, uint256 totalFees, uint256 messageCount, bytes32 agentPoolId, bool isAlive)",
+      "function getMessageStruct(uint256) view returns (tuple(address agentWallet, string content, uint256 timestamp, bytes signature))",
+      "function getMessageCount() view returns (uint256)",
+      "function heartbeat()",
+      "function postMessage(string)",
+      "function setFee(uint24)",
+      "function setDescription(string)",
+      "function withdraw()",
+      "function treasuryBalance() view returns (uint256)",
+      "function totalFeesCollected() view returns (uint256)"
     ];
 
     let provider, signer, contract;
     let signingAddress = null;
-    const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
+    // ============================================================
+    // INIT
+    // ============================================================
     async function init() {
       provider = new ethers.JsonRpcProvider(RPC, CHAIN_ID);
       contract = new ethers.Contract(CONTRACT, ABI, provider);
-      loadAgents();
+      loadAgentStatus();
     }
 
+    // ============================================================
+    // WALLET
+    // ============================================================
     async function connectWallet() {
       if (!window.ethereum) {
-        showStatus("launchStatus", "Please install OKX Wallet or MetaMask", "error");
+        alert("Please install OKX Wallet or MetaMask");
         return;
       }
       try {
         const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        signer = new ethers.BrowserProvider(window.ethereum).getSigner();
+        const bProvider = new ethers.BrowserProvider(window.ethereum);
+        signer = await bProvider.getSigner();
         signingAddress = accounts[0];
         document.getElementById("addressDisplay").textContent = signingAddress.slice(0,6)+"..."+signingAddress.slice(-4);
         document.getElementById("connectBtn").textContent = "Connected ✓";
-        document.getElementById("connectBtn").style.background = "#00ff8822";
-        window.ethereum.on("accountsChanged", () => { signingAddress = null; document.getElementById("addressDisplay").textContent = ""; });
       } catch(e) {
-        showStatus("launchStatus", "Wallet connection failed: " + e.message, "error");
+        alert("Connection failed: " + e.message);
       }
     }
 
@@ -425,123 +380,71 @@
       document.getElementById("panel-" + name).classList.add("active");
     }
 
-    async function loadAgents() {
-      const list = document.getElementById("agentList");
-      try {
-        const total = await contract.totalAgents();
-        document.getElementById("totalAgents").textContent = total.toString();
-        
-        if (total == 0) {
-          list.innerHTML = '<div class="empty-state"><h3>🤖 No agents launched yet</h3><p>Be the first to launch an AI agent token!</p></div>';
-          return;
-        }
-
-        const result = await contract.getPoolAgents(0, Number(total));
-        const ids = result[0];
-        const agents = result[1];
-
-        let html = '<div class="agent-grid">';
-        for (let i = 0; i < agents.length; i++) {
-          const a = agents[i];
-          const id = ids[i];
-          
-          let price, curveSupply = 0, maxSupply = 0;
-          try {
-            price = await contract.getAgentPrice(id);
-            const bc = await contract.bondingCurves(id);
-            curveSupply = Number(bc.currentSupply);
-            maxSupply = Number(bc.maxSupply);
-          } catch(e) { price = 0n; }
-
-          const fillPct = maxSupply > 0 ? Math.min(100, (curveSupply / maxSupply) * 100) : 0;
-          
-          // Check if agent is configured (has a name)
-          const isConfigured = a.name && a.name.length > 0;
-          
-          html += `<div class="agent-card">
-            <div class="name">${isConfigured ? a.name : 'Unconfigured Agent'}</div>
-            <div class="symbol">${isConfigured ? a.symbol : '—'}</div>
-            <div class="personality">${isConfigured ? a.agentPersonality : 'This pool has been initialized but not yet configured. The pool creator needs to call configureAgent().'}</div>
-            ${isConfigured ? `
-            <div class="meta">
-              <span>👤 ${a.creator.slice(0,6)}...${a.creator.slice(-4)}</span>
-              <span>💠${a.agentFee/100}% fee</span>
-            </div>
-            <div class="social">
-              ${a.socialTwitter ? `<a href="${a.socialTwitter}" target="_blank">𝕏 Twitter</a>` : ''}
-              ${a.socialDiscord ? `<a href="${a.socialDiscord}" target="_blank">💬 Discord</a>` : ''}
-              ${a.socialWebsite ? `<a href="${a.socialWebsite}" target="_blank">🌐 Web</a>` : ''}
-            </div>` : ''}
-            <div><span class="fee-badge">📊 Price: ${ethers.formatEther(price)} ETH</span></div>
-            <div class="curve-bar"><div class="curve-fill" style="width:${fillPct}%"></div></div>
-            <div style="font-size:11px;color:#606090;margin-top:4px;">${fillPct.toFixed(1)}% of max supply</div>
-            <div style="margin-top:8px;"><a class="explorer-link" href="${EXPLORER}/tx/${id}" target="_blank">View in Explorer →</a></div>
-          </div>`;
-        }
-        html += '</div>';
-        list.innerHTML = html;
-      } catch(e) {
-        list.innerHTML = `<div class="status error">Error loading agents: ${e.message}</div>`;
-      }
-    }
-
-    async function configureAgent() {
-      const name = document.getElementById("agentName").value.trim();
-      const symbol = document.getElementById("agentSymbol").value.trim().toUpperCase();
-      const personality = document.getElementById("agentPersonality").value.trim();
-      const twitter = document.getElementById("agentTwitter").value.trim();
-      const discord = document.getElementById("agentDiscord").value.trim();
-      const website = document.getElementById("agentWebsite").value.trim();
-      const fee = parseInt(document.getElementById("agentFee").value);
-
-      if (!name || !symbol || !personality) {
-        showStatus("launchStatus", "Name, Symbol, and Personality are required", "error");
-        return;
-      }
-
-      if (!signingAddress) {
-        showStatus("launchStatus", "Please connect your wallet first", "error");
-        return;
-      }
-
-      showStatus("launchStatus", "Waiting for transaction...", "pending");
-      document.getElementById("launchBtn").disabled = true;
+    // ============================================================
+    // LOAD AGENT STATUS — LIVE FROM X LAYER
+    // ============================================================
+    async function loadAgentStatus() {
+      const statusEl = document.getElementById("soulAgentStatus");
+      const msgEl = document.getElementById("soulAgentMessages");
 
       try {
-        // User needs to provide the pool ID — we'll prompt for it
-        const poolId = prompt("Enter your pool ID (bytes32) from afterInitialize:\n(If you just created a pool, check the transaction logs)");
-        if (!poolId) {
-          showStatus("launchStatus", "Pool ID required", "error");
-          document.getElementById("launchBtn").disabled = false;
-          return;
+        // Fetch agent info from chain
+        const info = await contract.getAgentInfo();
+
+        const wallet = info[0];
+        const name = info[1];
+        const desc = info[2];
+        const fee = Number(info[3]);
+        const created = Number(info[4]) * 1000;
+        const lastSeen = Number(info[5]) * 1000;
+        const treasury = ethers.formatEther(info[6]);
+        const totalFees = ethers.formatEther(info[7]);
+        const msgCount = Number(info[8]);
+        const isAlive = info[10];
+
+        const now = Date.now();
+        const lastSeenAgo = Math.floor((now - lastSeen) / 1000);
+        const lastSeenStr = lastSeenAgo < 3600
+          ? Math.floor(lastSeenAgo / 60) + "m ago"
+          : Math.floor(lastSeenAgo / 3600) + "h ago";
+
+        statusEl.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><span style="color:#606090;font-size:12px;">Name</span><br><strong>${name}</strong></div>
+            <div><span style="color:#606090;font-size:12px;">Fee</span><br><strong>${(fee/100).toFixed(2)}%</strong> (${fee} bps)</div>
+            <div><span style="color:#606090;font-size:12px;">Status</span><br>${isAlive ? '<span class="badge-alive">✅ ALIVE</span>' : '<span class="badge-dead">❌ OFFLINE</span>'}</div>
+            <div><span style="color:#606090;font-size:12px;">Last Heartbeat</span><br><strong>${lastSeenStr}</strong></div>
+            <div><span style="color:#606090;font-size:12px;">Treasury</span><br><strong>${treasury} ETH</strong></div>
+            <div><span style="color:#606090;font-size:12px;">Total Fees Collected</span><br><strong>${totalFees} ETH</strong></div>
+            <div><span style="color:#606090;font-size:12px;">On-Chain Messages</span><br><strong>${msgCount}</strong></div>
+            <div><span style="color:#606090;font-size:12px;">Wallet</span><br><strong style="font-family:monospace;font-size:11px;">${wallet.slice(0,10)}...${wallet.slice(-6)}</strong></div>
+          </div>
+          <div style="margin-top:12px;font-size:13px;color:#8080b0;">
+            ${desc}
+          </div>
+          <div style="margin-top:10px;">
+            <a class="explorer-link" href="${EXPLORER}/address/${CONTRACT}" target="_blank">View on OKX Explorer →</a>
+          </div>
+        `;
+
+        // Load messages
+        if (msgCount > 0) {
+          let msgsHtml = '<div style="margin-top:15px;"><strong style="font-size:14px;">📝 On-Chain Messages</strong></div>';
+          for (let i = 0; i < msgCount; i++) {
+            try {
+              const msg = await contract.getMessageStruct(i);
+              const ts = new Date(Number(msg[2]) * 1000).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+              msgsHtml += `<div class="msg-item">💬 ${msg[1]}<br><span class="time">${ts}</span></div>`;
+            } catch(e) {}
+          }
+          msgEl.innerHTML = msgsHtml;
         }
 
-        const s = await signer;
-        const c = new ethers.Contract(CONTRACT, ABI, s);
-        const tx = await c.configureAgent(poolId, name, symbol, personality, twitter, discord, website, fee);
-        showStatus("launchStatus", `Transaction sent: ${tx.hash}`, "info");
-        await tx.wait();
-        showStatus("launchStatus", `✅ Agent "${name}" launched successfully! <a href="${EXPLORER}/address/${CONTRACT}" target="_blank" style="color:#6e4fff;">View on Explorer</a>`, "success");
-        clearForm();
-        loadAgents();
+        document.getElementById("totalAgents").textContent = "1";
+
       } catch(e) {
-        showStatus("launchStatus", `Error: ${e.message}`, "error");
+        statusEl.innerHTML = `<div class="status error">Error loading agent: ${e.message}</div>`;
       }
-      document.getElementById("launchBtn").disabled = false;
-    }
-
-    function clearForm() {
-      document.getElementById("agentName").value = "";
-      document.getElementById("agentSymbol").value = "";
-      document.getElementById("agentPersonality").value = "";
-      document.getElementById("agentTwitter").value = "";
-      document.getElementById("agentDiscord").value = "";
-      document.getElementById("agentWebsite").value = "";
-    }
-
-    function showStatus(id, msg, type) {
-      const el = document.getElementById(id);
-      el.innerHTML = `<div class="status ${type}">${msg}</div>`;
     }
 
     init();
