@@ -1,0 +1,8 @@
+{
+  "name": "agentlaunch-hook",
+  "version": "1.0.0",
+  "description": "AI Agent Token Launchpad — Uniswap V4 Hook on X Layer",
+  "scripts": {
+    "start": "npx serve ./dashboard"
+  }
+}

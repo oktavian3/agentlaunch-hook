@@ -1,0 +1,18 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.26"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 1000000
+via_ir = true
+
+[fuzz]
+runs = 1000
+
+[fmt]
+line_length = 120
+
+[rpc_endpoints]
+xlayer = "https://rpc.xlayer.tech"

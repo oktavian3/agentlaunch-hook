@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "public": true,
+  "buildCommand": null,
+  "outputDirectory": "dashboard",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
