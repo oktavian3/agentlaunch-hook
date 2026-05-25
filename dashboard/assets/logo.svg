@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <defs>
+    <linearGradient id="mStripe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0066b1"/>
+      <stop offset="50%" stop-color="#1c69d4"/>
+      <stop offset="100%" stop-color="#e22718"/>
+    </linearGradient>
+  </defs>
+
+  <!-- M tricolor stripe accent -->
+  <rect x="0" y="0" width="400" height="3" fill="url(#mStripe)" rx="0"/>
+
+  <!-- Hook icon -->
+  <g transform="translate(20, 30)">
+    <!-- Hook shape -->
+    <path d="M 15 10 
+             C 15 10, 10 5, 5 10 
+             C 0 15, 0 25, 5 30 
+             L 15 40 
+             L 25 30 
+             C 30 25, 30 15, 25 10 
+             C 20 5, 15 10, 15 10 Z" 
+          fill="none" stroke="#1c69d4" stroke-width="3" stroke-linecap="round"/>
+    <!-- Arrow point -->
+    <path d="M 5 30 L 0 38" stroke="#1c69d4" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M 5 30 L 12 35" stroke="#1c69d4" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Circle at top -->
+    <circle cx="15" cy="8" r="5" fill="#0066b1"/>
+  </g>
+
+  <!-- Vertical divider -->
+  <line x1="60" y1="18" x2="60" y2="102" stroke="#262626" stroke-width="1"/>
+
+  <!-- Text: AGENT -->
+  <text x="80" y="56" font-family="Inter, -apple-system, sans-serif" font-size="26" font-weight="700" letter-spacing="6" fill="#ffffff" text-transform="uppercase">AGENT</text>
+
+  <!-- Text: HOOK -->
+  <text x="80" y="88" font-family="Inter, -apple-system, sans-serif" font-size="32" font-weight="300" letter-spacing="4" fill="#bbbbbb">HOOK</text>
+
+  <!-- Small M stripe underline -->
+  <rect x="80" y="100" width="60" height="2" fill="url(#mStripe)" rx="0"/>
+</svg>
