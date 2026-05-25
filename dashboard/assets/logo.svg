@@ -6,7 +6,7 @@
       <stop offset="100%" stop-color="#e22718"/>
     </linearGradient>
   </defs>
-  <text x="2" y="36" font-family="Inter, -apple-system, sans-serif" font-size="24" font-weight="700" letter-spacing="6" fill="#ffffff" text-transform="uppercase">AGENT</text>
-  <text x="2" y="56" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="300" letter-spacing="3" fill="#7e7e7e" text-transform="uppercase">HOOK</text>
-  <rect x="2" y="58" width="40" height="2" fill="url(#mStripe)" rx="0"/>
+  <text x="0" y="34" font-family="Inter, -apple-system, sans-serif" font-size="24" font-weight="700" letter-spacing="6" fill="#ffffff" text-transform="uppercase">AGENT</text>
+  <text x="0" y="52" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="300" letter-spacing="4" fill="#7e7e7e" text-transform="uppercase">HOOK</text>
+  <rect x="0" y="56" width="40" height="2" fill="url(#mStripe)" rx="0"/>
 </svg>
