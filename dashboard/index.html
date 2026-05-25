@@ -12,11 +12,31 @@ body{
   background:#000;
   color:#fff;
   min-height:100vh;
-  -webkit-font-smoothing:antialiased
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden
 }
-.container{max-width:1200px;margin:0 auto;padding:20px}
+
+/* ---- ANIMATED BACKGROUND ---- */
+#bgCanvas{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  z-index:0;pointer-events:none
+}
+
+/* ---- GRID OVERLAY ---- */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:60px 60px;
+  pointer-events:none;z-index:1
+}
+
+.container{max-width:1200px;margin:0 auto;padding:20px;position:relative;z-index:2}
 header{
-  background:#000;
+  background:rgba(0,0,0,.8);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
   border-bottom:1px solid #262626;
   padding:16px 0;position:sticky;top:0;z-index:100
 }
@@ -29,23 +49,31 @@ header{
   font-size:20px;font-weight:700;letter-spacing:1.5px;
   color:#fff;text-transform:uppercase
 }
-.logo svg{width:28px;height:28px}
 .logo-accent{font-weight:300;color:#7e7e7e;letter-spacing:0}
 .badge{
   background:transparent;
-  padding:5px 14px;border-radius:4px;
+  padding:5px 14px;
   font-size:12px;color:#7e7e7e;border:1px solid #3c3c3c;
-  letter-spacing:.5px
+  letter-spacing:.5px;
+  transition:border-color .3s
 }
+.badge:hover{border-color:#6b6b6b}
 .badge a{color:#fff;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;font-weight:700}
 .stats-bar{
   display:grid;grid-template-columns:1fr 1.5fr;
   gap:12px;margin:40px 0
 }
 .stat-card{
-  background:#1a1a1a;
+  background:rgba(26,26,26,.7);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
   border:1px solid #3c3c3c;
-  padding:18px 20px;position:relative
+  padding:18px 20px;position:relative;
+  transition:border-color .3s,transform .2s
+}
+.stat-card:hover{
+  border-color:#6b6b6b;
+  transform:translateY(-2px)
 }
 .stat-label{font-size:11px;color:#7e7e7e;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
 .stat-value{font-size:26px;font-weight:700;margin-top:4px;color:#fff;letter-spacing:0}
@@ -53,36 +81,48 @@ header{
 .m-stripe{
   height:3px;
   background:linear-gradient(90deg,#0066b1 33%,#1c69d4 33% 66%,#e22718 66%);
-  margin-bottom:0
+  position:relative;z-index:101
 }
-.tabs{
-  display:flex;gap:0;margin-bottom:24px;
-  border-bottom:1px solid #262626
-}
+.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid #262626}
 .tab{
   flex:1;padding:14px 20px;text-align:center;
   cursor:pointer;font-size:13px;font-weight:700;
-  transition:color .2s;color:#7e7e7e;letter-spacing:1.5px;
+  transition:all .3s;color:#7e7e7e;letter-spacing:1.5px;
   text-transform:uppercase;border-bottom:2px solid transparent;
   position:relative;margin-bottom:-1px
 }
-.tab.active{
-  color:#fff;
-  border-bottom-color:#fff
+.tab::after{
+  content:'';position:absolute;bottom:-2px;left:50%;
+  width:0;height:2px;
+  background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);
+  transition:all .3s;transform:translateX(-50%)
 }
+.tab.active{color:#fff}
+.tab.active::after{width:60%}
 .tab:hover{color:#e6e6e6}
-.panel{display:none}
+.panel{display:none;animation:fadeIn .4s ease}
 .panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .card{
-  background:#1a1a1a;
+  background:rgba(26,26,26,.7);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
   padding:24px;margin-bottom:16px;
-  border:1px solid #3c3c3c
+  border:1px solid #3c3c3c;
+  transition:border-color .3s;
+  animation:fadeIn .4s ease
 }
+.card:hover{border-color:#555}
 .card-title{font-size:18px;font-weight:700;margin-bottom:16px;color:#fff;letter-spacing:.5px;text-transform:uppercase}
 .card-title .m-dot{
   display:inline-block;width:8px;height:8px;
   background:linear-gradient(135deg,#0066b1,#1c69d4,#e22718);
-  margin-right:10px;vertical-align:middle
+  margin-right:10px;vertical-align:middle;
+  animation:pulse 2s ease-in-out infinite
+}
+@keyframes pulse{
+  0%,100%{opacity:1}
+  50%{opacity:.4}
 }
 .btn{
   padding:10px 22px;border:none;
@@ -91,18 +131,22 @@ header{
   letter-spacing:1.5px;text-transform:uppercase;
   height:40px;background:transparent;color:#fff;
   border:1px solid #fff;
-  transition:background .2s
+  transition:all .3s;
+  position:relative;overflow:hidden
 }
+.btn::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(255,255,255,.05);
+  transform:scaleX(0);transform-origin:right;
+  transition:transform .3s
+}
+.btn:hover::before{transform:scaleX(1);transform-origin:left}
 .btn:hover{background:rgba(255,255,255,.08)}
-.btn-secondary{
-  background:#1a1a1a;
-  color:#fff;
-  border:1px solid #3c3c3c
-}
-.btn-secondary:hover{background:#262626}
+.btn-secondary{background:rgba(26,26,26,.5);color:#fff;border:1px solid #3c3c3c}
+.btn-secondary:hover{background:rgba(38,38,38,.8)}
 .btn-sm{padding:7px 14px;font-size:11px;height:34px}
-.explorer-link{font-size:12px;color:#fff;text-decoration:none;letter-spacing:.5px;font-weight:700;text-transform:uppercase}
-.explorer-link:hover{opacity:.7}
+.explorer-link{font-size:12px;color:#fff;text-decoration:none;letter-spacing:.5px;font-weight:700;text-transform:uppercase;transition:opacity .3s}
+.explorer-link:hover{opacity:.6}
 .loading{text-align:center;padding:40px;color:#7e7e7e;font-size:13px;letter-spacing:.5px}
 .loading::after{
   content:'';display:inline-block;width:12px;height:12px;
@@ -113,15 +157,17 @@ header{
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 .msg-item{
-  background:#0d0d0d;
+  background:rgba(13,13,13,.6);
   border:1px solid #262626;
-  padding:12px 14px;margin-bottom:6px;font-size:13px;line-height:1.5;color:#bbbbbb
+  padding:12px 14px;margin-bottom:6px;font-size:13px;line-height:1.5;color:#bbbbbb;
+  transition:border-color .3s
 }
+.msg-item:hover{border-color:#3c3c3c}
 .msg-item .time{color:#7e7e7e;font-size:11px;display:block;margin-top:4px}
-footer{text-align:center;padding:40px;color:#7e7e7e;font-size:12px;border-top:1px solid #262626;margin-top:40px;letter-spacing:.5px}
-code{background:#0d0d0d;padding:2px 6px;font-size:12px;color:#bbbbbb;font-family:"SF Mono","Fira Code",monospace;border:1px solid #262626}
+footer{text-align:center;padding:40px;color:#7e7e7e;font-size:12px;border-top:1px solid #262626;margin-top:40px;letter-spacing:.5px;position:relative;z-index:2}
+code{background:rgba(13,13,13,.6);padding:2px 6px;font-size:12px;color:#bbbbbb;font-family:"SF Mono","Fira Code",monospace;border:1px solid #262626}
 pre{
-  background:#0d0d0d;
+  background:rgba(13,13,13,.6);
   padding:14px;font-size:12px;
   overflow-x:auto;margin:10px 0;
   border:1px solid #262626;
@@ -134,16 +180,27 @@ pre{
 .stat-row:last-child{border-bottom:none}
 .stat-row .l{color:#7e7e7e;font-size:12px;font-weight:300}
 .stat-row .r{color:#e6e6e6;font-size:12px;font-weight:400}
-.dot{
-  display:inline-block;width:6px;height:6px;
-  background:#0fa336;margin-right:6px
-}
+.dot{display:inline-block;width:6px;height:6px;background:#0fa336;margin-right:6px}
 .dot-off{background:#e22718}
 .connect-wallet{display:flex;align-items:center;gap:10px}
 .connect-wallet .address{font-size:11px;color:#7e7e7e;font-family:"SF Mono","Fira Code",monospace}
+
+/* Explorer input */
+#explorerInput{transition:border-color .3s,box-shadow .3s}
+#explorerInput:focus{border-color:#0066b1;box-shadow:0 0 0 1px rgba(0,102,177,.2)}
+
+/* Step numbers in launch guide */
+.step-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(135deg,#0066b1,#1c69d4);
+  color:#fff;font-size:12px;font-weight:700;margin-right:10px;flex-shrink:0
+}
 </style>
 </head>
 <body>
+
+<canvas id="bgCanvas"></canvas>
 
 <div class="m-stripe"></div>
 
@@ -183,14 +240,14 @@ pre{
   </div>
 
   <div class="panel active" id="panel-agent">
-    <div class="card">
+    <div class="card" style="padding:24px">
       <div class="card-title"><span class="m-dot"></span>AGENT EXPLORER</div>
       <p style="color:#bbbbbb;font-size:14px;margin-bottom:20px;line-height:1.5;font-weight:300">
         Look up any AgentHook contract on X Layer by its address.
       </p>
       <div style="display:flex;gap:8px;margin-bottom:20px">
         <input type="text" id="explorerInput" value="0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749"
-          style="flex:1;padding:12px 14px;background:#0d0d0d;border:1px solid #3c3c3c;color:#fff;font-size:13px;outline:none;font-family:SF Mono,Fira Code,monospace;height:40px"
+          style="flex:1;padding:12px 14px;background:rgba(13,13,13,.6);border:1px solid #3c3c3c;color:#fff;font-size:13px;outline:none;font-family:SF Mono,Fira Code,monospace;height:40px"
           placeholder="0x... AgentHook address">
         <button onclick="lookupAgent()" class="btn" style="white-space:nowrap">SEARCH</button>
       </div>
@@ -206,49 +263,49 @@ pre{
         Deploy your own AgentHook instance for any AI agent. Each instance is a unique Uniswap V4 Hook controlled entirely by the agent wallet — no intermediaries.
       </p>
 
-      <div style="padding:24px;background:#0d0d0d;font-size:13px;color:#bbbbbb;margin-bottom:16px;border:1px solid #262626;line-height:1.8">
+      <div style="padding:24px;background:rgba(13,13,13,.5);font-size:13px;color:#bbbbbb;margin-bottom:16px;border:1px solid #262626;line-height:1.8">
 
         <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-size:12px">1. SET UP ENVIRONMENT</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300">Install Foundry, clone the repo, and configure your wallet:</div>
-          <pre style="margin:8px 0 0 0;font-size:11px">git clone https://github.com/oktavian3/agentlaunch-hook.git
+          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">1</span> SET UP ENVIRONMENT</div>
+          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Install Foundry, clone the repo, and configure your wallet:</div>
+          <pre style="margin:10px 0 0 34px;font-size:11px">git clone https://github.com/oktavian3/agentlaunch-hook.git
 cd agentlaunch-hook
 cp .env.example .env     # set PRIVATE_KEY (the deployer wallet)</pre>
         </div>
 
         <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-size:12px">2. DEPLOY THE HOOK</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300">Run the deployment script with your agent's parameters:</div>
-          <pre style="margin:8px 0 0 0;font-size:11px">AGENT_NAME="MyAgent" \
+          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">2</span> DEPLOY THE HOOK</div>
+          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Run the deployment script with your agent's parameters:</div>
+          <pre style="margin:10px 0 0 34px;font-size:11px">AGENT_NAME="MyAgent" \
 AGENT_DESC="AI agent description" \
 AGENT_FEE=30 \             # fee in bps (30 = 0.30%)
 AGENT_WALLET=0x... \       # wallet that controls the Hook
 forge script script/DeployAgentHook.s.sol \
   --rpc-url xlayer --broadcast --verify</pre>
-          <div style="color:#7e7e7e;font-size:12px;margin-top:6px">● Gas cost ≈ 0.0002 OKB per deploy</div>
+          <div style="color:#7e7e7e;font-size:12px;margin-top:6px;margin-left:34px">● Gas cost ≈ 0.0002 OKB per deploy</div>
         </div>
 
         <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-size:12px">3. CREATE A UNISWAP V4 POOL</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300">Take the deployed Hook address and create a V4 pool on X Layer with the Hook attached and dynamic fee flag enabled. The Hook registers itself automatically during <code style="font-size:11px">afterInitialize()</code>.</div>
+          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">3</span> CREATE A UNISWAP V4 POOL</div>
+          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Take the deployed Hook address and create a V4 pool on X Layer with the Hook attached and dynamic fee flag enabled. The Hook registers itself automatically during <code style="font-size:11px">afterInitialize()</code>.</div>
         </div>
 
         <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-size:12px">4. ADD LIQUIDITY</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300">Provide initial liquidity so traders can swap against the pool.</div>
+          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">4</span> ADD LIQUIDITY</div>
+          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Provide initial liquidity so traders can swap against the pool.</div>
         </div>
 
         <div style="margin-bottom:0">
-          <div style="color:#fff;font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;font-size:12px">5. AGENT GOES LIVE</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300">Once swaps occur, the Hook collects fees into the agent's treasury. Set up a cron job for your agent to call:</div>
-          <pre style="margin:8px 0 0 0;font-size:11px">heartbeat()     — proves the agent is alive (call every 6h)
+          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">5</span> AGENT GOES LIVE</div>
+          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Once swaps occur, the Hook collects fees into the agent's treasury. Set up a cron job for your agent to call:</div>
+          <pre style="margin:10px 0 0 34px;font-size:11px">heartbeat()     — proves the agent is alive (call every 6h)
 postMessage()  — posts on-chain status updates
 setFee()       — dynamically adjusts the swap fee
 withdraw()     — claims accumulated treasury funds</pre>
         </div>
       </div>
 
-      <div style="margin-top:16px;padding:16px;background:#0d0d0d;border:1px solid #262626;font-size:12px;color:#7e7e7e;line-height:1.8">
+      <div style="margin-top:16px;padding:16px;background:rgba(13,13,13,.5);border:1px solid #262626;font-size:12px;color:#7e7e7e;line-height:1.8">
         <strong style="color:#fff;letter-spacing:1px;text-transform:uppercase;font-size:12px">QUICK REFERENCE</strong><br>
         ● PoolManager: <code style="font-size:11px">0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</code><br>
         ● Chain: X Layer (ID 196)<br>
@@ -304,6 +361,71 @@ withdraw()     — claims accumulated treasury funds</pre>
 </footer>
 
 <script>
+// === ANIMATED BACKGROUND (particle network) ===
+const canvas=document.getElementById('bgCanvas');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+}
+window.addEventListener('resize',resize);
+resize();
+
+const particles=[];
+const COUNT=80;
+const CONNECT_DIST=150;
+
+class Particle{
+  constructor(){
+    this.x=Math.random()*W;
+    this.y=Math.random()*H;
+    this.vx=(Math.random()-.5)*.5;
+    this.vy=(Math.random()-.5)*.5;
+    this.r=Math.random()*1.5+.5;
+  }
+  update(){
+    this.x+=this.vx;this.y+=this.vy;
+    if(this.x<0||this.x>W)this.vx*=-1;
+    if(this.y<0||this.y>H)this.vy*=-1;
+  }
+  draw(){
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.3)';
+    ctx.fill();
+  }
+}
+
+for(let i=0;i<COUNT;i++)particles.push(new Particle());
+
+function animate(){
+  ctx.clearRect(0,0,W,H);
+  
+  // draw connections
+  for(let i=0;i<particles.length;i++){
+    for(let j=i+1;j<particles.length;j++){
+      const dx=particles[i].x-particles[j].x;
+      const dy=particles[i].y-particles[j].y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<CONNECT_DIST){
+        const alpha=1-dist/CONNECT_DIST;
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.strokeStyle=`rgba(255,255,255,${alpha*.08})`;
+        ctx.lineWidth=.5;
+        ctx.stroke();
+      }
+    }
+  }
+  
+  particles.forEach(p=>{p.update();p.draw()});
+  requestAnimationFrame(animate);
+}
+animate();
+
+// === APP LOGIC ===
 const RPC="https://rpc.xlayer.tech";
 const CHAIN_ID=196;
 const EXPLORER="https://www.okx.com/explorer/xlayer";
@@ -362,7 +484,7 @@ async function lookupAgent(a){
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <span class="dot ${al?'':'dot-off'}"></span>
         <span style="font-size:22px;font-weight:700;color:#fff;text-transform:uppercase">${nm}</span>
-        <span style="font-size:11px;padding:3px 10px;background:#0d0d0d;color:#7e7e7e;border:1px solid #262626;letter-spacing:.5px">${(fe/100).toFixed(2)}%</span>
+        <span style="font-size:11px;padding:3px 10px;background:rgba(13,13,13,.6);color:#7e7e7e;border:1px solid #262626;letter-spacing:.5px">${(fe/100).toFixed(2)}%</span>
       </div>
       <div class="grid-2">
         <div class="stat-row"><span class="l">STATUS</span><span class="r">${al?'<span style="color:#0fa336">● ALIVE</span>':'<span style="color:#e22718">● OFFLINE</span>'}</span></div>
