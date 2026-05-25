@@ -342,6 +342,11 @@ select option{background:#13161f;color:#c8ccd8}
         <label>Description</label>
         <textarea id="agentDescInput" placeholder="What does this AI agent do?"></textarea>
       </div>
+      <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:12px;color:#6b7394">Deploy via CLI with Foundry:</span>
+        <code style="font-size:11px;padding:6px 10px;background:rgba(12,14,24,.6);border-radius:6px">forge script script/DeployAgentHook.s.sol --rpc-url xlayer --broadcast --verify</code>
+        <a class="explorer-link" href="https://github.com/oktavian3/agentlaunch-hook" target="_blank" style="font-size:12px">Deploy guide →</a>
+      </div>
     </div>
   </div>
 
