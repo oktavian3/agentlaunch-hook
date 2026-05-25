@@ -338,44 +338,57 @@ withdraw()     — claims accumulated treasury funds</pre>
         Built for <a href="#" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">BUILD X HACKATHON</a> on X Layer.
       </p>
       <!-- Architecture diagram -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:0;margin:24px 0;position:relative">
+      <div style="display:flex;flex-direction:column;align-items:center;margin:24px 0;position:relative">
+
         <!-- AI AGENT block -->
-        <div style="background:linear-gradient(135deg,rgba(0,102,177,.1),rgba(28,105,212,.05));border:1px solid rgba(0,102,177,.25);padding:14px 24px;min-width:280px;text-align:center;position:relative">
-          <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">AI Agent</div>
-          <div style="font-size:11px;color:#bbbbbb;line-height:1.8;font-weight:300">
-            <span style="color:#0066b1">●</span> setFee() &nbsp;
-            <span style="color:#0fa336">●</span> heartbeat() &nbsp;
-            <span style="color:#0fa336">●</span> postMessage()<br>
-            <span style="color:#1c69d4">●</span> withdraw()
+        <div style="background:linear-gradient(135deg,rgba(0,102,177,.12),rgba(28,105,212,.06));border:1px solid rgba(0,102,177,.3);padding:18px 28px;min-width:300px;text-align:center;position:relative">
+          <div style="position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);opacity:.6"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#0066b1"><circle cx="12" cy="12" r="10" stroke="#0066b1" stroke-width="1" fill="none"/><path d="M12 6v12M6 12h12" stroke="#0066b1" stroke-width="1.5"/></svg>
+            <span style="font-size:12px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase">AI Agent</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
+            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(0,102,177,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">setFee()</span>
+            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(15,163,54,.25);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">heartbeat()</span>
+            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(15,163,54,.25);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">postMessage()</span>
+            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(28,105,212,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">withdraw()</span>
           </div>
         </div>
 
-        <!-- Arrow down -->
-        <div style="display:flex;flex-direction:column;align-items:center;margin:4px 0;color:#3c3c3c">
-          <svg width="16" height="20" viewBox="0 0 16 20"><line x1="8" y1="0" x2="8" y2="14" stroke="#3c3c3c" stroke-width="1.5"/><polyline points="2,10 8,18 14,10" fill="none" stroke="#3c3c3c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-top:2px">owns</div>
+        <!-- Connector -->
+        <div style="display:flex;flex-direction:column;align-items:center;padding:6px 0">
+          <svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="0" x2="10" y2="16" stroke="#3c3c3c" stroke-width="1"/><polyline points="4,12 10,20 16,12" fill="none" stroke="#7e7e7e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span style="font-size:8px;color:#555;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px">controls</span>
         </div>
 
         <!-- AGENTHOOK INSTANCE block -->
-        <div style="background:linear-gradient(135deg,rgba(28,105,212,.1),rgba(0,102,177,.05));border:1px solid rgba(28,105,212,.25);padding:14px 24px;min-width:280px;text-align:center;position:relative">
-          <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">AgentHook Instance</div>
-          <div style="font-size:11px;color:#bbbbbb;line-height:1.8;font-weight:300">
-            <span style="color:#0066b1">beforeSwap</span> <span style="color:#7e7e7e">→</span> fee<br>
-            <span style="color:#1c69d4">afterSwap</span> <span style="color:#7e7e7e">→</span> treasury
+        <div style="background:linear-gradient(135deg,rgba(28,105,212,.12),rgba(0,102,177,.06));border:1px solid rgba(28,105,212,.3);padding:18px 28px;min-width:300px;text-align:center;position:relative">
+          <div style="position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);opacity:.6"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#1c69d4" stroke-width="1.5"/></svg>
+            <span style="font-size:12px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase">AgentHook Instance</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
+            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(0,102,177,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px"><span style="color:#0066b1;font-weight:700">beforeSwap</span> → fee</span>
+            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(28,105,212,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px"><span style="color:#1c69d4;font-weight:700">afterSwap</span> → treasury</span>
           </div>
         </div>
 
-        <!-- Arrow down -->
-        <div style="display:flex;flex-direction:column;align-items:center;margin:4px 0;color:#3c3c3c">
-          <svg width="16" height="20" viewBox="0 0 16 20"><line x1="8" y1="0" x2="8" y2="14" stroke="#3c3c3c" stroke-width="1.5"/><polyline points="2,10 8,18 14,10" fill="none" stroke="#3c3c3c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div style="font-size:9px;color:#555;letter-spacing:1px;text-transform:uppercase;margin-top:2px">attached to</div>
+        <!-- Connector -->
+        <div style="display:flex;flex-direction:column;align-items:center;padding:6px 0">
+          <svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="0" x2="10" y2="16" stroke="#3c3c3c" stroke-width="1"/><polyline points="4,12 10,20 16,12" fill="none" stroke="#7e7e7e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span style="font-size:8px;color:#555;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px">attached to</span>
         </div>
 
         <!-- UNISWAP V4 POOL block -->
-        <div style="background:linear-gradient(135deg,rgba(226,39,24,.08),rgba(226,39,24,.03));border:1px solid rgba(226,39,24,.2);padding:14px 24px;min-width:280px;text-align:center;position:relative">
-          <div style="font-size:11px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Uniswap V4 Pool</div>
-          <div style="font-size:11px;color:#bbbbbb;line-height:1.8;font-weight:300">
-            <span style="color:#e22718">swaps</span> <span style="color:#7e7e7e">→</span> agent revenue
+        <div style="background:linear-gradient(135deg,rgba(226,39,24,.08),rgba(226,39,24,.03));border:1px solid rgba(226,39,24,.25);padding:18px 28px;min-width:300px;text-align:center;position:relative">
+          <div style="position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);opacity:.6"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 12L10 16L18 8" stroke="#e22718" stroke-width="2"/><circle cx="12" cy="12" r="10" stroke="#e22718" stroke-width="1" fill="none"/></svg>
+            <span style="font-size:12px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase">Uniswap V4 Pool</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
+            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(226,39,24,.25);border-radius:2px;color:#bbbbbb;letter-spacing:.5px"><span style="color:#e22718;font-weight:700">swaps</span> → agent revenue</span>
           </div>
         </div>
       </div>
