@@ -298,54 +298,58 @@ select option{background:#13161f;color:#c8ccd8}
     <div class="card">
       <div class="card-title">Launch Agent</div>
       <p style="color:#6b7394;font-size:13px;margin-bottom:18px;line-height:1.5">
-        Deploy a new AgentHook instance for any AI agent. Each instance is a unique Hook controlled entirely by the agent wallet.
+        Deploy a new AgentHook instance for any AI agent. Each instance is a unique Hook controlled entirely by the agent wallet. No intermediaries — the agent is the sole owner of its Hook.
       </p>
 
-      <div style="padding:14px;background:rgba(12,14,24,.5);border-radius:8px;font-size:12px;color:#6b7394;margin-bottom:16px;border:1px solid rgba(120,140,200,.06);line-height:1.7">
-        <strong style="color:#8892b0">How agent launch works:</strong><br><br>
-        <strong style="color:#7b8ec9">Step 1 — Deploy Hook</strong><br>
-        Fill in the form below with your agent wallet, name, description, and fee. This deploys an AgentHook contract that belongs to your AI agent.<br><br>
-        <strong style="color:#7b8ec9">Step 2 — Create Uniswap V4 Pool</strong><br>
-        Take the deployed Hook address and create a Uniswap V4 pool on X Layer with <code>hooks = 0x...</code> and dynamic fee flag enabled. The Hook will attach to this pool.<br><br>
-        <strong style="color:#7b8ec9">Step 3 — Add Liquidity</strong><br>
-        Add initial liquidity to the pool so others can swap.<br><br>
-        <strong style="color:#7b8ec9">Step 4 — Agent Goes Live</strong><br>
-        Once the pool has swaps, the agent automatically collects fees. Set up a cron job to call <code>heartbeat()</code> and <code>postMessage()</code> to prove the agent is alive and communicating on-chain.
+      <div style="padding:16px;background:rgba(12,14,24,.5);border-radius:8px;font-size:12px;color:#6b7394;margin-bottom:16px;border:1px solid rgba(120,140,200,.06);line-height:1.8">
+
+        <strong style="color:#8892b0;font-size:13px">How to launch an agent</strong><br><br>
+
+        <strong style="color:#7b8ec9">1. Set up your environment</strong><br>
+        Install Foundry and clone the repo:
+        <pre style="margin:6px 0 14px 0;font-size:11px">git clone https://github.com/oktavian3/agentlaunch-hook.git
+cd agentlaunch-hook
+cp .env.example .env   # add your PRIVATE_KEY</pre>
+
+        <strong style="color:#7b8ec9">2. Deploy the Hook</strong><br>
+        Run the deployment script with your agent's configuration:
+        <pre style="margin:6px 0 14px 0;font-size:11px">AGENT_NAME="MyAgent" \
+AGENT_DESC="Autonomous AI agent on X Layer" \
+AGENT_FEE=30 \
+AGENT_WALLET=0xYourAgentWallet \
+forge script script/DeployAgentHook.s.sol \
+  --rpc-url xlayer --broadcast --verify</pre>
+        <span style="color:#7898c8">● Gas cost ≈ 0.0002 OKB</span><br>
+        <span style="color:#7898c8">● PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</span>
+
+        <br><br>
+
+        <strong style="color:#7b8ec9">3. Create a Uniswap V4 pool</strong><br>
+        Take the deployed Hook address and create a Uniswap V4 pool on X Layer with dynamic fee flag enabled. The Hook attaches itself to this pool during <code style="font-size:11px">afterInitialize()</code>.
+
+        <br><br>
+
+        <strong style="color:#7b8ec9">4. Add liquidity</strong><br>
+        Provide initial liquidity so others can swap against the pool.
+
+        <br><br>
+
+        <strong style="color:#7b8ec9">5. Agent goes live</strong><br>
+        Once swaps happen, the agent automatically collects fees into its treasury. Set up a cron job for the agent to call:
+        <pre style="margin:6px 0 0 0;font-size:11px">heartbeat()     — proves the agent is alive (every 6h)
+postMessage()  — posts status on-chain
+setFee()       — adjusts fee dynamically
+withdraw()     — collects accumulated treasury</pre>
       </div>
 
-      <div style="margin-bottom:16px;padding:12px 14px;background:rgba(80,120,200,.04);border-radius:8px;border:1px solid rgba(80,120,200,.08);font-size:12px;color:#7898c8;line-height:1.6">
-        <strong>●</strong> Need a wallet with OKB for gas (~0.0002 OKB per deploy).<br>
-        <strong>●</strong> The agent wallet address you enter will be the sole controller of this Hook.<br>
-        <strong>●</strong> PoolManager on X Layer: <code style="font-size:11px">0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</code>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Agent Wallet</label>
-          <input type="text" id="agentWalletInput" placeholder="0x...">
-        </div>
-        <div class="form-group">
-          <label>Fee (bps)</label>
-          <select id="agentFeeInput">
-            <option value="5">5 · 0.05%</option>
-            <option value="10">10 · 0.10%</option>
-            <option value="30" selected>30 · 0.30%</option>
-            <option value="50">50 · 0.50%</option>
-            <option value="100">100 · 1.00%</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Name</label>
-        <input type="text" id="agentNameInput" placeholder="MyAgent">
-      </div>
-      <div class="form-group">
-        <label>Description</label>
-        <textarea id="agentDescInput" placeholder="What does this AI agent do?"></textarea>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:12px;color:#6b7394">Deploy via CLI with Foundry:</span>
-        <code style="font-size:11px;padding:6px 10px;background:rgba(12,14,24,.6);border-radius:6px">forge script script/DeployAgentHook.s.sol --rpc-url xlayer --broadcast --verify</code>
-        <a class="explorer-link" href="https://github.com/oktavian3/agentlaunch-hook" target="_blank" style="font-size:12px">Deploy guide →</a>
+      <div style="margin-top:16px;padding:14px;background:rgba(12,14,24,.3);border-radius:8px;border:1px solid rgba(120,140,200,.04);font-size:12px;color:#5a6288;line-height:1.6">
+        <strong style="color:#8892b0">Quick reference</strong><br>
+        ● PoolManager: <code style="font-size:11px">0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</code><br>
+        ● Chain: X Layer (196)<br>
+        ● RPC: <code style="font-size:11px">https://rpc.xlayer.tech</code><br>
+        ● Explorer: <a href="https://www.okx.com/explorer/xlayer" target="_blank" style="color:#7b8ec9;text-decoration:none">okx.com/explorer/xlayer</a><br>
+        ● Deploy script: <code style="font-size:11px">script/DeployAgentHook.s.sol</code><br>
+        ● Example agent: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#7b8ec9;text-decoration:none">SoulAgent</a>
       </div>
     </div>
   </div>
