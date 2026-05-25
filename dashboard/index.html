@@ -259,13 +259,19 @@ select option{background:#13161f;color:#c8ccd8}
   </div>
 
   <div class="panel active" id="panel-agent">
-    <div class="card">
-      <div class="card-title"><span class="pulse-dot"></span>SoulAgent</div>
+    <div class="card" style="padding:20px">
+      <div class="card-title">Agent Explorer</div>
       <p style="color:#6b7394;font-size:13px;margin-bottom:16px;line-height:1.5">
-        First AI agent with its own Uniswap V4 Hook on X Layer.
+        Look up any AgentHook contract on X Layer by its address.
       </p>
-      <div id="soulAgentStatus" class="loading">Loading agent data</div>
-      <div id="soulAgentMessages" style="margin-top:16px"></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input type="text" id="explorerInput" value="0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749"
+          style="flex:1;padding:10px 14px;border-radius:8px;background:rgba(12,14,24,.6);border:1px solid rgba(120,140,200,.1);color:#c8ccd8;font-size:13px;outline:none;font-family:SF Mono,Fira Code,monospace"
+          placeholder="0x... AgentHook address">
+        <button onclick="lookupAgent()" style="padding:10px 20px;border-radius:8px;border:1px solid rgba(120,140,200,.15);background:rgba(120,140,200,.12);color:#b4c0e0;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap">Search</button>
+      </div>
+      <div id="resultStatus" class="loading" style="padding:20px">Loading agent data...</div>
+      <div id="resultMessages" style="margin-top:8px"></div>
     </div>
   </div>
 
@@ -374,7 +380,6 @@ withdraw()     — claims accumulated treasury funds</pre>
 </footer>
 
 <script>
-const CONTRACT="0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749";
 const RPC="https://rpc.xlayer.tech";
 const CHAIN_ID=196;
 const EXPLORER="https://www.okx.com/explorer/xlayer";
@@ -390,23 +395,11 @@ const ABI=[
   "function treasuryBalance() view returns (uint256)",
   "function totalFeesCollected() view returns (uint256)"
 ];
-let provider,contract,signer,signingAddress;
+let provider;
 
 async function init(){
   provider=new ethers.JsonRpcProvider(RPC,CHAIN_ID);
-  contract=new ethers.Contract(CONTRACT,ABI,provider);
-  loadAgentStatus()
-}
-async function connectWallet(){
-  if(!window.ethereum)return;
-  try{
-    const a=await window.ethereum.request({method:"eth_requestAccounts"});
-    const bp=new ethers.BrowserProvider(window.ethereum);
-    signer=await bp.getSigner();
-    signingAddress=a[0];
-    document.getElementById("addressDisplay").textContent=a[0].slice(0,6)+"..."+a[0].slice(-4);
-    document.getElementById("connectBtn").textContent="Connected"
-  }catch(e){}
+  lookupAgent()
 }
 function switchTab(n){
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
@@ -414,39 +407,65 @@ function switchTab(n){
   document.getElementById("tab-"+n).classList.add("active");
   document.getElementById("panel-"+n).classList.add("active")
 }
-async function loadAgentStatus(){
-  const se=document.getElementById("soulAgentStatus");
-  const me=document.getElementById("soulAgentMessages");
+async function connectWallet(){
+  if(!window.ethereum)return;
   try{
-    const i=await contract.getAgentInfo();
+    const a=await window.ethereum.request({method:"eth_requestAccounts"});
+    const bp=new ethers.BrowserProvider(window.ethereum);
+    const s=await bp.getSigner();
+    document.getElementById("addressDisplay").textContent=a[0].slice(0,6)+"..."+a[0].slice(-4);
+    document.getElementById("connectBtn").textContent="Connected"
+  }catch(e){}
+}
+async function lookupAgent(a){
+  const addr=(a||document.getElementById("explorerInput").value||"").trim();
+  if(!addr||!addr.startsWith("0x"))return;
+  document.getElementById("explorerInput").value=addr;
+  const se=document.getElementById("resultStatus");
+  const me=document.getElementById("resultMessages");
+  se.className="loading";
+  se.innerHTML="Loading agent data...";
+  me.innerHTML="";
+  try{
+    const c=new ethers.Contract(addr,ABI,provider);
+    const i=await c.getAgentInfo();
     const w=i[0],nm=i[1],dc=i[2],fe=Number(i[3]),cr=Number(i[4])*1e3,ls=Number(i[5])*1e3;
     const tr=ethers.formatEther(i[6]),tf=ethers.formatEther(i[7]),mc=Number(i[8]),al=i[10];
     const na=Math.floor((Date.now()-ls)/1e3);
-    const lstr=na<3600?Math.floor(na/60)+"m":Math.floor(na/3600)+"h";
+    const lstr=na<60?"just now":na<3600?Math.floor(na/60)+"m":Math.floor(na/3600)+"h";
+    se.className="";
     se.innerHTML=`
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span class="pulse-dot" style="${al?'':'background:#c87878;box-shadow:0 0 6px rgba(200,80,80,.3)'}"></span>
+        <span style="font-size:18px;font-weight:500;color:#e8ecf4">${nm}</span>
+        <span style="font-size:11px;padding:2px 10px;border-radius:6px;background:rgba(120,140,200,.04);color:#6b7394;border:1px solid rgba(120,140,200,.06)">${(fe/100).toFixed(2)}%</span>
+      </div>
       <div class="grid-2">
-        <div class="stat-row"><span class="l">Name</span><span class="r">${nm}</span></div>
-        <div class="stat-row"><span class="l">Fee</span><span class="r">${(fe/100).toFixed(2)}%</span></div>
         <div class="stat-row"><span class="l">Status</span><span class="r">${al?'<span style="color:#78c8a0">● Alive</span>':'<span style="color:#c87878">● Offline</span>'}</span></div>
         <div class="stat-row"><span class="l">Heartbeat</span><span class="r">${lstr} ago</span></div>
         <div class="stat-row"><span class="l">Treasury</span><span class="r">${tr} ETH</span></div>
-        <div class="stat-row"><span class="l">Collected</span><span class="r">${tf} ETH</span></div>
+        <div class="stat-row"><span class="l">Fees Collected</span><span class="r">${tf} ETH</span></div>
         <div class="stat-row"><span class="l">Messages</span><span class="r">${mc}</span></div>
-        <div class="stat-row"><span class="l">Wallet</span><span class="r" style="font-family:monospace;font-size:11px">${w.slice(0,8)}…${w.slice(-6)}</span></div>
+        <div class="stat-row"><span class="l">Agent Wallet</span><span class="r" style="font-family:monospace;font-size:11px">${w.slice(0,8)}…${w.slice(-6)}</span></div>
+        <div class="stat-row"><span class="l" style="grid-column:span 2">Contract</span></div>
       </div>
+      <div style="margin-top:4px;font-family:monospace;font-size:11px;color:#5a6288;word-break:break-all">${addr}</div>
       <div style="margin-top:12px;font-size:13px;color:#6b7394;line-height:1.5">${dc}</div>
-      <div style="margin-top:10px"><a class="explorer-link" href="${EXPLORER}/address/${CONTRACT}" target="_blank">View on Explorer →</a></div>`;
+      <div style="margin-top:10px"><a class="explorer-link" href="${EXPLORER}/address/${addr}" target="_blank">View on Explorer →</a></div>`;
     document.getElementById("totalAgents").textContent="1";
     if(mc>0){
       let h='<div style="margin-top:16px"><div style="font-size:13px;font-weight:500;color:#8892b0;margin-bottom:8px">Messages</div>';
       for(let i=0;i<mc;i++)try{
-        const m=await contract.getMessageStruct(i);
+        const m=await c.getMessageStruct(i);
         const ts=new Date(Number(m[2])*1e3).toISOString().replace("T"," ").slice(0,16)+" UTC";
         h+=`<div class="msg-item">${m[1]}<span class="time">${ts}</span></div>`
       }catch(e){}
       me.innerHTML=h+"</div>"
     }
-  }catch(e){se.innerHTML=`<div class="status error">${e.message}</div>`}
+  }catch(e){
+    se.className="";
+    se.innerHTML=`<div class="status error">Failed to load agent data. Make sure the address is a valid AgentHook contract on X Layer.</div>`
+  }
 }
 init()
 </script>
