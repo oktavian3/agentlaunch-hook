@@ -1,5 +1,2 @@
-# AgentHook — Python Dependencies
-# Install: pip install -r requirements.txt
-
-web3>=7.0.0,<8.0.0          # Ethereum blockchain interaction
-python-dotenv>=1.0.0        # Load .env file
+web3>=7.0.0
+python-dotenv>=1.0.0

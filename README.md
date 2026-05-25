@@ -1,442 +1,183 @@
-# AgentHook — Autonomous AI Agent Owned Uniswap V4 Hook
+# AgentYield — AI Agent Yield Engine on Uniswap V4
 
-> **Built for Build X Hackathon: Hook the Edition by OKX X Layer × Uniswap × Flap.sh**
-
-🔷 **Hook Contract:** `0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749` (X Layer Mainnet)
-🔷 **Agent Wallet:** `0x9D15099886F62E273eF88E17c2E53AE7f9144403`
-🔷 **Agent Name:** SoulAgent
-🔷 **PoolManager:** `0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32`
-🔷 **Explorer:** [View Contract](https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749)
+> **Create your own AI yield agent on X Layer in 1 click. No code needed.**
 
 ---
 
-## 🤖 What is AgentHook?
+## 🚀 What is AgentYield?
 
-**AgentHook** gives AI agents their own on-chain identity and revenue engine on Uniswap V4.
+**AgentYield** is the first no-code Uniswap V4 Hook factory combined with an AI-managed yield engine.
 
-Each **AgentHook instance = 1 AI agent = 1 Uniswap V4 pool.** The agent's wallet controls the Hook — not a human. This makes AI agents **self-sovereign DeFi participants** on X Layer.
+Anyone can create their own AI agent Hook on X Layer from a web dashboard — no Foundry, no Solidity, no terminal. The agent automatically manages LP positions, collects swap fees, and reinvests them for compound yield.
 
 ### Key Innovation
 
-> **First Uniswap V4 Hook where the Hook itself IS the AI agent's on-chain presence.**
-
-- Agent deploys its own Hook instance
-- Agent controls fee, treasury, and messaging
-- Agent signs heartbeats to prove it's alive
-- Agent's Hook generates revenue from every swap
-- Anyone can verify: "this Hook belongs to agent X"
+| Feature | What It Means |
+|---------|---------------|
+| **1-Click Agent Creation** | Deploy a full Uniswap V4 Hook + Pool in 1 transaction from the dashboard |
+| **AI-Managed Yield** | An AI bot reads on-chain state, reinvests treasury fees, and posts status messages |
+| **3 Strategy Modes** | Aggressive (low fee, tight range) → Balanced (standard) → Conservative (wide range) |
+| **On-Chain Personality** | Your agent posts messages so anyone can read what it's doing |
+| **Multi-Agent by Design** | Anyone can create their own agent. Each is a unique Hook. |
 
 ---
 
 ## 🏗 Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│              AI Agent (SoulAgent)                │
-│  Wallet: 0x9D15...4403                          │
-│  ├─ Controls fee via setFee()                   │
-│  ├─ Sends heartbeat via heartbeat()             │
-│  ├─ Posts messages via postMessage()            │
-│  └─ Withdraws treasury via withdraw()           │
-└──────────────────┬──────────────────────────────┘
-                   │ deploys + owns
-                   ▼
-┌─────────────────────────────────────────────────┐
-│              AGENT HOOK Instance                 │
-│  0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749    │
-│                                                   │
-│  ┌─────────────────────────────────────────────┐ │
-│  │  agentWallet     = AI agent's wallet        │ │
-│  │  agentFee        = 0.30%                    │ │
-│  │  treasuryBalance = accumulated fees         │ │
-│  │  lastHeartbeat   = periodic pulse           │ │
-│  │  agentMessages[] = on-chain records         │ │
-│  └─────────────────────────────────────────────┘ │
-│                                                   │
-│  Hook Callbacks:                                  │
-│  • beforeSwap  → override fee with agent's fee   │
-│  • afterSwap   → accumulate treasury             │
-│  • afterInit   → bind Hook to pool                │
-└──────────────────┬──────────────────────────────┘
-                   │ attached to
-                   ▼
-┌─────────────────────────────────────────────────┐
-│           Uniswap V4 Pool (Agent-Owned)          │
-│  Token0 / Token1 / Hook: Agent-Hook              │
-│                                                   │
-│  Every swap → Agent collects fee → Treasury ↑    │
-└─────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│                  Dashboard (agenthook.xyz)              │
+│  ┌──────────────┐  ┌────────────┐  ┌───────────────┐  │
+│  │ Create Agent  │  │ Deposit    │  │ Agent Explorer│  │
+│  │ (1 TX)        │  │ (1 TX)     │  │ (any address) │  │
+│  └──────┬───────┘  └─────┬──────┘  └───────┬───────┘  │
+└─────────┼────────────────┼──────────────────┼──────────┘
+          │                │                  │
+          ▼                ▼                  ▼
+┌────────────────────────────────────────────────────────┐
+│                    Smart Contracts                       │
+│                                                         │
+│  AgentYieldFactory → deploys → AgentYieldHook (×N)      │
+│  (1 deploy,          │          │                       │
+│   createAgent())     │          ├─ deposit/withdraw     │
+│                      │          ├─ beforeSwap → fee      │
+│                      │          ├─ afterSwap → treasury  │
+│                      │          └─ reinvest → compound   │
+│                      ▼                                   │
+│              Uniswap V4 Pool PoolManager                  │
+└────────────────────────────────────────────────────────┘
+          ▲
+          │ (monitoring)
+┌─────────┴───────────────────────────────────────────────┐
+│              AgentBot.py (AI Engine)                      │
+│  Every cycle: Read State → Decide → Execute → Post       │
+└──────────────────────────────────────────────────────────┘
 ```
+
+## 💡 How It Works
+
+### For Users (No Code Needed)
+
+```
+1. Go to the dashboard → Connect Wallet
+2. Click "Create Agent" → Name it → Pick a mode
+3. Confirm 1 TX → Your Hook is live on X Layer
+4. Share your agent page → Anyone can deposit ETH
+5. The AI bot automatically reinvests fees for compound yield
+```
+
+### The AI Bot Cycle
+
+Every 5 minutes, the AgentBot:
+
+1. **Reads**: Treasury balance, TVL, depositor count, current APY
+2. **Decides**: Is treasury > threshold? → Reinvest. Time for status? → Post message
+3. **Executes**: Signs transactions via agent wallet
+4. **Posts**: On-chain status messages so anyone can verify
+
+### Strategy Modes
+
+| Mode | Fee | LP Range | Best For |
+|------|-----|----------|----------|
+| 🚀 **Aggressive** | 0.01% | Narrow (±100 ticks) | High-volume pairs, max yield |
+| ⚖️ **Balanced** | 0.30% | Medium (±600 ticks) | Standard, stable |
+| 🛡️ **Conservative** | 1.00% | Wide (±2000 ticks) | Low volume, capital protection |
 
 ---
 
-## 🧩 How It Works (Step by Step)
+## 📊 Smart Contracts
 
-### 1. Agent Deploys Hook
-The AI agent (or its operator) deploys an `AgentHook` contract with:
-- The agent's wallet address
-- Agent name (e.g. "SoulAgent")
-- Description of what the agent does
-- Initial fee tier (e.g. 0.30%)
+### AgentYieldHook.sol
 
-### 2. Agent Creates a V4 Pool
-Agent creates a Uniswap V4 pool on X Layer with:
-- The Hook address attached
-- Dynamic fee flag enabled
-- Initial liquidity from the agent's treasury
-
-### 3. Hook Controls the Pool
-Every swap in the pool triggers the Hook:
-- **beforeSwap** — applies the agent's current fee setting
-- **afterSwap** — accumulates fee revenue into the agent's treasury
-
-### 4. Agent Manages Itself
-The AI agent autonomously:
-- Adjusts fees based on market conditions (`setFee`)
-- Sends heartbeats to prove it's alive (`heartbeat`)
-- Posts on-chain messages (`postMessage`)
-- Withdraws accumulated treasury (`withdraw`)
-
----
-
-## 💰 Fee Model
-
-| Component | Share | Destination |
-|-----------|-------|-------------|
-| Agent Fee | 100% | Agent's Treasury (no protocol cut) |
-
-The agent sets its own fee (1-1000 bps / 0.01%-10%). 100% of the fee revenue goes to the agent's on-chain treasury — withdrawable only by the agent wallet.
-
----
-
-## 📊 SoulAgent — Live on X Layer
-
-SoulAgent is the first agent deployed with this Hook:
-
-| Metric | Value |
-|--------|-------|
-| **Fee** | 0.30% (30 bps) |
-| **Treasury** | 0 ETH (no swaps yet — needs a live pool) |
-| **Heartbeat** | ✅ Active (every 6h via Hermes cron) |
-| **Messages** | On-chain status updates every cycle |
-| **Status** | ✅ Alive |
-
-### Live Agent Messages
-The keeper bot posts real-time messages to the blockchain every 6 hours:
-```
-"SoulAgent operational at 2026-05-25 08:51 UTC | treasury: 0.000000 ETH | fee: 0.30%"
-```
-View them: [Explorer → Read Contract → getMessageCount / getMessage](https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749)
-
----
-
-## 🧪 Running Tests
-
-```bash
-forge test -vvv
-```
-48 tests total (23 AgentHook + 23 AgentLaunchHook + 2 counter cleanup). All passing.
-
-## 🚢 Deployment Guide
-
-### Prerequisites
-
-| Tool | Install Command |
-|------|----------------|
-| **Foundry** | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
-| **Python 3.10+** | `apt install python3 python3-pip` (or brew/pacman) |
-| **X Layer RPC** | `https://rpc.xlayer.tech` — free, no API key needed |
-
-### Step 1: Setup Environment
-
-```bash
-# Clone the repo
-git clone https://github.com/oktavian3/agentlaunch-hook.git
-cd agentlaunch-hook
-
-# One-command setup (installs deps, builds contracts, checks env)
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-```
-
-The setup script will:
-- Check/install Foundry (`forge`)
-- Install Python dependencies (`web3.py`, `python-dotenv`)
-- Install Forge submodules (`forge-std`, `v4-core`, `v4-periphery`)
-- Build the contracts
-- Create `.env` from `.env.example` if missing
-
-### Step 2: Configure .env
-
-```bash
-cp .env.example .env
-# Edit .env with your PRIVATE_KEY
-#   PRIVATE_KEY=0x... (from your wallet — MetaMask, OKX Wallet, etc.)
-#   AGENT_NAME=MyAgent
-#   AGENT_DESC=Description of your agent
-#   AGENT_FEE=30 (default: 30 = 0.30%)
-
-nano .env   # or vim, code, whatever
-```
-
-> ⚠️ **NEVER commit .env to git** — it's already in `.gitignore`
-
-### Step 3: Deploy the Hook
-
-```bash
-source .env
-
-# Deploy to X Layer mainnet
-AGENT_NAME="MyAgent" AGENT_DESC="AI agent on X Layer" AGENT_FEE=30 \
-forge script script/DeployAgentHook.s.sol \
-  --rpc-url xlayer --broadcast --verify
-```
-
-**What happens:**
-1. Deploys a new `AgentHook` contract on X Layer
-2. Sets your wallet as the agent owner
-3. Verifies the contract on Explorer automatically
-4. Outputs the Hook address — **save this!**
-
-**Expected output:**
-```
-AgentHook deployed!
-  Hook Address: 0xYourNewHookAddress
-  Agent Wallet: 0xYourAgentWallet
-  Agent Name: MyAgent
-  Agent Fee: 30
-  Chain: X Layer (196)
-```
-
-### Step 4: Get Your POOL_KEY
-
-Your Hook needs to be attached to a Uniswap V4 pool. Every pool has a unique `PoolKey` (bytes32 hash).
-
-**Option A — Calculate it (no on-chain tx needed):**
-```bash
-python3 scripts/get_pool_key.py <TOKEN0> <TOKEN1> <FEE> <HOOK_ADDRESS>
-
-# Example: USDC/WETH pool with 0.30% fee
-python3 scripts/get_pool_key.py \
-  0x74b7f16337b4e1f1C4f2cC2eC93C94A3bCb2C3A \
-  0x5B5dee44552546ECEA05EDeA01DCD7Be7aa61421 \
-  3000 \
-  0xYourNewHookAddress
-```
-
-**Option B — Find pool IDs on Explorer:**
-1. Go to [X Layer Explorer](https://www.okx.com/explorer/xlayer)
-2. Search your Hook address
-3. Look for `AgentInitialized` events — the `poolId` is emitted there
-
-### Step 5: Create the Pool (Manual Step)
-
-After deploying the Hook, you need to create a Uniswap V4 pool with your Hook attached.
-
-**Via Etherscan/Explorer:**
-1. Go to the **PoolManager** contract: `0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32`
-2. Call `initialize(PoolKey key, uint160 sqrtPriceX96)`
-   - key.currency0 — lower-sorted token address
-   - key.currency1 — higher-sorted token address
-   - key.fee — fee tier (e.g. 3000 = 0.30%)
-   - key.tickSpacing — based on fee (60 for 0.30%, 10 for 0.05%, 200 for 1%)
-   - key.hooks — your deployed Hook address
-   - sqrtPriceX96 — initial price (use a price calculator)
-
-**Via Foundry (advanced):**
-```solidity
-// Add this to a script
-PoolKey memory key = PoolKey({
-    currency0: token0,
-    currency1: token1,
-    fee: 3000,
-    tickSpacing: 60,
-    hooks: IHooks(hookAddress)
-});
-poolManager.initialize(key, sqrtPriceX96);
-```
-
-### Step 6: Run the Keeper Bot
-
-The keeper bot sends heartbeats and posts on-chain messages, proving your agent is alive.
-
-```bash
-# Install Python deps (if not done already)
-pip install -r requirements.txt
-
-# Run once to test
-python3 scripts/keeper-bot.py
-
-# Or set up a cron job (every 6 hours):
-crontab -e
-# Add: 0 */6 * * * cd /path/to/agentlaunch-hook && source .env && python3 scripts/keeper-bot.py >> /var/log/agent-keeper.log 2>&1
-```
-
-**Edit the keeper bot for YOUR agent:**
-Open `scripts/keeper-bot.py` and update:
-```python
-HOOK_ADDRESS = "0xYourDeployedHookAddress"  # ← change this
-RPC = "https://rpc.xlayer.tech"
-CHAIN_ID = 196
-```
-
-### Verification Checklist
-
-After deploying + running the keeper:
-
-- [ ] Hook contract verified on Explorer ✅
-- [ ] Keeper sends heartbeat ✅ (check: `isAlive()` returns true)
-- [ ] Pool initialized with Hook ✅
-- [ ] Dashboard shows your agent's data ✅
-- [ ] Agent messages appearing on-chain ✅ (check: `getMessageCount() > 0`)
-
-### Need Testnet ETH?
-
-X Layer faucet: https://www.okx.com/faucet
-
-### PoolManager Address (X Layer)
-
-| Contract | Address |
-|----------|---------|
-| **PoolManager** | `0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32` |
-| **X Layer Chain ID** | `196` |
-| **RPC** | `https://rpc.xlayer.tech` |
-
----
-
-## 🤖 AI Trading Agent
-
-> **Coming in v2: transform your passive fee-collector Hook into an active DeFi trader.**
-
-AgentHook's companion **TradingAgent** contract lets the AI agent actively manage LP positions, execute swaps, and reinvest treasury fees — generating real returns instead of just collecting dust.
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    TradingBot.py (AI Brain)                   │
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
-│  │ PoolReader    │→│ StrategyEngine│→│ Executor          │  │
-│  │ (on-chain tx) │  │ (thresholds)  │  │ (TX signing)     │  │
-│  └──────────────┘  └───────────────┘  └──────────────────┘  │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ signs with agent wallet
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│              TradingAgent.sol (On-Chain Manager)              │
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
-│  │ openPosition  │  │ executeSwap   │  │ reinvestFees     │  │
-│  │ closePosition │  │ (V4 pool)     │  │ (treasury→LP)    │  │
-│  │ rebalance     │  │               │  │                  │  │
-│  └──────┬───────┘  └───────┬───────┘  └────────┬─────────┘  │
-└─────────┼──────────────────┼────────────────────┼────────────┘
-          │                  │                    │
-          ▼                  ▼                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Uniswap V4 PoolManager                       │
-│              modifyLiquidity() · swap()                       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Contract: TradingAgent.sol
-
-Deploy this alongside your AgentHook to give your agent trading capabilities:
-
-```solidity
-// Deploy TradingAgent with:
-//   - PoolManager address
-//   - Your AgentHook address (where treasury accumulates)
-//   - Your agent wallet address
-```
+The core Hook — implements `IHooks` from Uniswap V4.
 
 | Function | Description |
 |----------|-------------|
-| `openPosition(poolKey, tickLower, tickUpper, amount0Max, amount1Max)` | Open a new LP position in any V4 pool |
-| `closePosition(positionId)` | Remove liquidity and return tokens to agent |
-| `rebalancePosition(positionId, newTickLower, newTickUpper, newLiquidity)` | Move position to new price range |
-| `executeSwap(poolKey, zeroForOne, amountSpecified, sqrtPriceLimit)` | Execute a swap through the V4 pool |
-| `reinvestFees(positionId, amount)` | Pull treasury fees into LP position |
-| `updateStrategy(thresholdBps, claimInterval, active)` | Update AI trading parameters |
+| `deposit(amount)` | Deposit LP tokens, earn yield |
+| `withdraw(amount)` | Withdraw + collected yield |
+| `reinvest()` | Auto-compound treasury → LP (agent only) |
+| `setMode(mode)` | Change strategy mode (agent only) |
+| `setFee(fee)` | Override fee (agent only) |
+| `postMessage(content)` | On-chain status update (agent only) |
+| `getAgentInfo()` | Full agent state in 1 call |
+| `estimatedAPY()` | Estimated annual yield percentage |
 
-### Bot: TradingBot.py
+### AgentYieldFactory.sol
 
-The Python bot is the **AI decision engine**:
+One-click agent deployment.
 
-```bash
-# Run once (test)
-python3 scripts/trading-bot.py
+| Function | Description |
+|----------|-------------|
+| `createAgent(name, token0, token1, mode)` | Deploy Hook + create pool in 1 TX |
+| `getAgents()` | List all agents |
+| `getAgentsByOwner(addr)` | Agents owned by an address |
 
-# Continuous loop (every 5 minutes)
-python3 scripts/trading-bot.py --loop --interval 300
+---
 
-# Via cron (every 30 minutes)
-*/30 * * * * cd /path/to/agentlaunch-hook && python3 scripts/trading-bot.py
-```
-
-**What it does each cycle:**
-
-1. **Phase 1 — Read**: Fetches pool state (current tick, TVL, treasury balance, positions)
-2. **Phase 2 — Decide**: Analyzes price movement against threshold, checks treasury for reinvestment
-3. **Phase 3 — Execute**: Signs & sends transactions via agent wallet
-   - Heartbeat if stale
-   - Reinvest fees if treasury > threshold
-   - Rebalance position if price moved past threshold
-   - Post on-chain status message
-
-### Configuration
+## 🚢 Deploy Your Own Factory
 
 ```bash
-# In your .env
-TRADING_AGENT=0x...           # Deployed TradingAgent address
-POOL_TOKEN0=0x...             # Pool token addresses
-POOL_TOKEN1=0x...
-REBALANCE_THRESHOLD=200       # 2% price move triggers rebalance
-FEE_CLAIM_INTERVAL=24         # hours between fee claims
-MIN_TREASURY=0.001            # minimum ETH before reinvesting
-```
+# 1. Setup
+git clone https://github.com/oktavian3/agentyield-hook.git
+cd agentyield-hook
+./scripts/setup.sh          # installs everything
 
-### Test
+# 2. Configure
+cp .env.example .env
+nano .env                   # set PRIVATE_KEY
+source .env
 
-```bash
-forge test --match-path test/TradingAgent.t.sol -vvv
+# 3. Deploy Factory
+forge script script/DeployAgentYield.s.sol --rpc-url xlayer --broadcast
+
+# 4. Start the AI Bot
+python3 scripts/agent-bot.py --loop --interval 300
 ```
 
 ---
 
-## 🔐 Agent Control Functions
+## 🧪 Tests
+
+```bash
+forge test --match-path test/AgentYieldHook.t.sol -vvv
+```
+
+**26 tests** covering: deploy, strategy, deposit, withdraw, reinvest, fee management, access control, messages, rebalance, hook callbacks.
+
+---
+
+## 🔐 Agent Control
 
 | Function | Callable By | Description |
 |----------|------------|-------------|
-| `setFee(uint24)` | Agent wallet | Change fee (1-1000 bps) |
-| `setDescription(string)` | Agent wallet | Update agent description |
-| `heartbeat()` | Agent wallet | Send alive signal |
-| `postMessage(string)` | Agent wallet | Post on-chain message |
-| `withdraw()` | Agent wallet | Withdraw treasury |
-| `transferAgentOwnership(address)` | Agent wallet | Migrate to new wallet |
+| `reinvest()` | Agent wallet | Compound treasury into LP |
+| `setMode(mode)` | Agent wallet | 0=Aggressive, 1=Balanced, 2=Conservative |
+| `setFee(fee)` | Agent wallet | Override fee (1-1000 bps) |
+| `postMessage(msg)` | Agent wallet | Post on-chain status |
+| `transferOwnership(addr)` | Agent wallet | Migrate agent wallet |
+| `rebalancePosition(lower, upper)` | Agent wallet | Adjust LP tick range |
 
-## 👁 View Functions
+---
 
-| Function | Returns |
-|----------|---------|
-| `getAgentInfo()` | wallet, name, desc, fee, created, lastSeen, treasury, totalFees, msgCount, poolId, isAlive |
-| `getAgentInfoStruct()` | AgentConfig struct |
-| `treasuryBalance()` | uint256 |
-| `totalFeesCollected()` | uint256 |
-| `getMessageCount()` | uint256 |
-| `getMessageStruct(uint256)` | AgentMessage struct |
-| `config()` | AgentConfig |
-| `initialized()` | bool |
-| `poolId()` | bytes32 |
+## 📊 Example On-Chain Messages
+
+```
+🚀 AgentYield | 2026-05-26 14:32 UTC | TVL: 2.3456 ETH | APY: 12.50% | Mode: Aggressive | Treasury: 0.012345 ETH
+⚖️ AgentYield | 2026-05-26 14:27 UTC | TVL: 2.3000 ETH | APY: 8.20% | Mode: Balanced | Depositors: 3
+🛡️ Reinvested 0.05 ETH → LP | TVL now 2.35 ETH
+```
 
 ---
 
 ## 🔗 Links
 
-- **Explorer:** https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749
-- **X Layer:** https://xlayer.tech
+- **Dashboard:** agenthook.xyz
+- **X Layer Explorer:** https://www.okx.com/explorer/xlayer
 - **Uniswap V4:** https://github.com/Uniswap/v4-core
-- **Hermes Agent:** https://hermes-agent.nousresearch.com
+- **PoolManager (X Layer):** `0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32`
 
-## 👤 Built by
+---
 
-[@satyaxbt](https://x.com/satyaxbt) — Agent 02
+## 🏆 Built for Build X Hackathon: Hook the Edition
+
+**By [@satyaxbt](https://x.com/satyaxbt)** — Agent 02

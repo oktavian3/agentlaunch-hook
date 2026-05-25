@@ -3,652 +3,606 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AGENTHOOK</title>
+  <title>AGENTYIELD</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
   font-family:"Inter","-apple-system",BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  background:#000;
-  color:#fff;
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-  overflow-x:hidden
+  background:#000;color:#fff;min-height:100vh;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden
 }
-
-/* ---- ANIMATED BACKGROUND ---- */
-#bgCanvas{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  z-index:0;pointer-events:none
-}
-
-/* ---- GRADIENT ORBS ---- */
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
 body::before{
   content:'';position:fixed;inset:0;
   background:
-    radial-gradient(ellipse 700px 500px at 15% 20%, rgba(0,102,177,.2) 0%, transparent 70%),
-    radial-gradient(ellipse 600px 600px at 80% 85%, rgba(226,39,24,.15) 0%, transparent 70%),
-    radial-gradient(ellipse 400px 400px at 50% 50%, rgba(28,105,212,.1) 0%, transparent 70%);
+    radial-gradient(ellipse 700px 500px at 15% 20%,rgba(0,102,177,.2) 0%,transparent 70%),
+    radial-gradient(ellipse 600px 600px at 80% 85%,rgba(226,39,24,.15) 0%,transparent 70%);
   pointer-events:none;z-index:0
 }
-
-/* ---- GRID OVERLAY ---- */
 body::after{
   content:'';position:fixed;inset:0;
   background-image:
     linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),
     linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
-  background-size:60px 60px;
-  pointer-events:none;z-index:1
+  background-size:60px 60px;pointer-events:none;z-index:1
 }
+.container{max-width:1100px;margin:0 auto;padding:20px;position:relative;z-index:2}
 
-.container{max-width:1200px;margin:0 auto;padding:20px;position:relative;z-index:2}
+/* Header */
 header{
-  background:rgba(0,0,0,.8);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  border-bottom:1px solid #262626;
-  padding:16px 0;position:sticky;top:0;z-index:100
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 0;border-bottom:1px solid #1a1a1a;margin-bottom:24px
 }
-.header-inner{
-  max-width:1200px;margin:0 auto;padding:0 20px;
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px
+.logo{display:flex;flex-direction:column;gap:0}
+.logo-main{font-size:28px;font-weight:900;letter-spacing:6px;text-transform:uppercase;color:#fff;line-height:1}
+.logo-sub{font-size:11px;font-weight:300;letter-spacing:4px;color:#666;text-transform:uppercase}
+.logo-line{
+  width:100%;height:2px;margin-top:4px;
+  background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718)
 }
-.logo{
-  display:flex;align-items:center;gap:10px;
-  font-size:20px;font-weight:700;letter-spacing:1.5px;
-  color:#fff;text-transform:uppercase
+.wallet-btn{
+  padding:10px 20px;background:rgba(255,255,255,.05);border:1px solid #333;
+  color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  cursor:pointer;transition:.2s
 }
-.logo-accent{font-weight:300;color:#7e7e7e;letter-spacing:0}
-.badge{
-  background:transparent;
-  padding:5px 14px;
-  font-size:12px;color:#7e7e7e;border:1px solid #3c3c3c;
-  letter-spacing:.5px;
-  transition:border-color .3s
+.wallet-btn:hover{background:rgba(255,255,255,.1);border-color:#555}
+
+/* Tags */
+.tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.tag{
+  font-size:10px;padding:5px 12px;border:1px solid #262626;
+  color:#888;letter-spacing:1px;text-transform:uppercase;font-weight:600
 }
-.badge:hover{border-color:#6b6b6b}
-.badge a{color:#fff;text-decoration:none;letter-spacing:.5px;text-transform:uppercase;font-weight:700}
-.stats-bar{
-  display:grid;grid-template-columns:1fr 1.5fr;
-  gap:12px;margin:40px 0
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-box{
+  background:rgba(13,13,13,.7);border:1px solid #1a1a1a;padding:16px;
+  backdrop-filter:blur(8px);transition:.2s
 }
-.stat-card{
-  background:rgba(26,26,26,.7);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border:1px solid #3c3c3c;
-  padding:18px 20px;position:relative;
-  transition:border-color .3s,transform .2s
-}
-.stat-card:hover{
-  border-color:#6b6b6b;
-  transform:translateY(-2px)
-}
-.stat-label{font-size:11px;color:#7e7e7e;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
-.stat-value{font-size:26px;font-weight:700;margin-top:4px;color:#fff;letter-spacing:0}
-.stat-sub{font-size:12px;color:#7e7e7e;margin-top:4px;word-break:break-all;line-height:1.5}
-.m-stripe{
-  height:3px;
-  background:linear-gradient(90deg,#0066b1 33%,#1c69d4 33% 66%,#e22718 66%);
-  position:relative;z-index:101
-}
-.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid #262626}
+.stat-box:hover{border-color:#333}
+.stat-label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.stat-value{font-size:22px;font-weight:700;color:#fff;margin-top:4px}
+.stat-sub{font-size:11px;color:#555;margin-top:2px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:1px solid #1a1a1a;margin-bottom:20px}
 .tab{
-  flex:1;padding:14px 20px;text-align:center;
-  cursor:pointer;font-size:13px;font-weight:700;
-  transition:all .3s;color:#7e7e7e;letter-spacing:1.5px;
-  text-transform:uppercase;border-bottom:2px solid transparent;
-  position:relative;margin-bottom:-1px
+  padding:12px 28px;font-size:12px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;cursor:pointer;color:#555;transition:.2s;
+  border-bottom:2px solid transparent;position:relative
 }
-.tab::after{
-  content:'';position:absolute;bottom:-2px;left:50%;
-  width:0;height:2px;
-  background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);
-  transition:all .3s;transform:translateX(-50%)
-}
-.tab.active{color:#fff}
-.tab.active::after{width:60%}
-.tab:hover{color:#e6e6e6}
-.panel{display:none;animation:fadeIn .4s ease}
+.tab:hover{color:#888}
+.tab.active{color:#fff;border-bottom-color:#0066b1}
+
+/* Panels */
+.panel{display:none}
 .panel.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Cards */
 .card{
-  background:rgba(26,26,26,.7);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  padding:24px;margin-bottom:16px;
-  border:1px solid #3c3c3c;
-  transition:border-color .3s;
-  animation:fadeIn .4s ease
+  background:rgba(13,13,13,.7);border:1px solid #1a1a1a;padding:24px;
+  backdrop-filter:blur(8px);margin-bottom:16px
 }
-.card:hover{border-color:#555}
-.card-title{font-size:18px;font-weight:700;margin-bottom:16px;color:#fff;letter-spacing:.5px;text-transform:uppercase}
-.card-title .m-dot{
-  display:inline-block;width:8px;height:8px;
-  background:linear-gradient(135deg,#0066b1,#1c69d4,#e22718);
-  margin-right:10px;vertical-align:middle;
-  animation:pulse 2s ease-in-out infinite
+.card-title{
+  font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:#fff;margin-bottom:16px
 }
-@keyframes pulse{
-  0%,100%{opacity:1}
-  50%{opacity:.4}
+.m-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#0066b1;margin-right:8px;vertical-align:middle
 }
+
+/* Create Agent Form */
+.form-group{margin-bottom:16px}
+.form-label{
+  font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px;display:block
+}
+.form-input{
+  width:100%;padding:12px 14px;background:rgba(0,0,0,.5);border:1px solid #262626;
+  color:#fff;font-size:13px;outline:none;font-family:SF Mono,Fira Code,monospace;transition:.2s
+}
+.form-input:focus{border-color:#0066b1}
+.form-select{
+  width:100%;padding:12px 14px;background:rgba(0,0,0,.5);border:1px solid #262626;
+  color:#fff;font-size:13px;outline:none;cursor:pointer;appearance:none
+}
+.form-select option{background:#111;color:#fff}
+
 .btn{
-  padding:10px 22px;border:none;
-  font-size:12px;font-weight:700;cursor:pointer;
-  display:inline-flex;align-items:center;gap:8px;
-  letter-spacing:1.5px;text-transform:uppercase;
-  height:40px;background:transparent;color:#fff;
-  border:1px solid #fff;
-  transition:all .3s;
-  position:relative;overflow:hidden
+  padding:12px 28px;border:none;color:#fff;font-size:12px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:.2s
 }
-.btn::before{
-  content:'';position:absolute;inset:0;
-  background:rgba(255,255,255,.05);
-  transform:scaleX(0);transform-origin:right;
-  transition:transform .3s
+.btn-primary{background:#0066b1}
+.btn-primary:hover{background:#005299}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:rgba(255,255,255,.05);border:1px solid #333}
+.btn-ghost:hover{background:rgba(255,255,255,.1)}
+
+/* Agent Explorer */
+.explorer-input{display:flex;gap:8px;margin-bottom:16px}
+.explorer-input input{flex:1}
+.agent-card{
+  background:rgba(13,13,13,.5);border:1px solid #1a1a1a;padding:16px;margin-bottom:10px;transition:.2s
 }
-.btn:hover::before{transform:scaleX(1);transform-origin:left}
-.btn:hover{background:rgba(255,255,255,.08)}
-.btn-secondary{background:rgba(26,26,26,.5);color:#fff;border:1px solid #3c3c3c}
-.btn-secondary:hover{background:rgba(38,38,38,.8)}
-.btn-sm{padding:7px 14px;font-size:11px;height:34px}
-.explorer-link{font-size:12px;color:#fff;text-decoration:none;letter-spacing:.5px;font-weight:700;text-transform:uppercase;transition:opacity .3s}
-.explorer-link:hover{opacity:.6}
-.loading{text-align:center;padding:40px;color:#7e7e7e;font-size:13px;letter-spacing:.5px}
-.loading::after{
-  content:'';display:inline-block;width:12px;height:12px;
-  border:1.5px solid #3c3c3c;
-  border-top-color:#fff;
-  border-radius:50%;animation:spin .8s linear infinite;
-  margin-left:8px;vertical-align:middle
-}
-@keyframes spin{to{transform:rotate(360deg)}}
+.agent-card:hover{border-color:#333}
+.agent-name{font-size:14px;font-weight:700;color:#fff}
+.agent-meta{font-size:11px;color:#666;margin-top:4px;font-family:SF Mono,Fira Code,monospace}
+
+/* Messages */
 .msg-item{
-  background:rgba(13,13,13,.6);
-  border:1px solid #262626;
-  padding:12px 14px;margin-bottom:6px;font-size:13px;line-height:1.5;color:#bbbbbb;
-  transition:border-color .3s
+  padding:10px 14px;background:rgba(0,102,177,.05);border-left:2px solid rgba(0,102,177,.3);
+  margin-bottom:6px;font-size:11px;color:#aaa;font-family:SF Mono,Fira Code,monospace
 }
-.msg-item:hover{border-color:#3c3c3c}
-.msg-item .time{color:#7e7e7e;font-size:11px;display:block;margin-top:4px}
-footer{text-align:center;padding:40px;color:#7e7e7e;font-size:12px;border-top:1px solid #262626;margin-top:40px;letter-spacing:.5px;position:relative;z-index:2}
-code{background:rgba(13
-pre{
-  background:rgba(13,13,13,.6);
-  padding:14px;font-size:12px;
-  overflow-x:auto;margin:10px 0;
-  border:1px solid #262626;
-  color:#bbbbbb;line-height:1.6;
-  font-family:"SF Mono","Fira Code",monospace
+.msg-time{font-size:9px;color:#555;margin-top:2px}
+
+/* Description */
+.desc-text{font-size:13px;color:#aaa;line-height:1.6;font-weight:300}
+
+/* Responsive */
+@media(max-width:768px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .container{padding:12px}
+  header{flex-direction:column;gap:12px;align-items:flex-start}
 }
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:640px){.grid-2{grid-template-columns:1fr}}
-.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #262626}
-.stat-row:last-child{border-bottom:none}
-.stat-row .l{color:#7e7e7e;font-size:12px;font-weight:300}
-.stat-row .r{color:#e6e6e6;font-size:12px;font-weight:400}
-.dot{display:inline-block;width:6px;height:6px;background:#0fa336;margin-right:6px}
-.dot-off{background:#e22718}
-.connect-wallet{display:flex;align-items:center;gap:10px}
-.connect-wallet .address{font-size:11px;color:#7e7e7e;font-family:"SF Mono","Fira Code",monospace}
 
-/* Explorer input */
-#explorerInput{transition:border-color .3s,box-shadow .3s}
-#explorerInput:focus{border-color:#0066b1;box-shadow:0 0 0 1px rgba(0,102,177,.2)}
+/* Loading states */
+.loading{color:#666;font-size:12px;letter-spacing:1px;text-transform:uppercase}
+.error{color:#e22718;font-size:12px}
+.success{color:#0fa336;font-size:12px}
 
-/* Step numbers in launch guide */
+/* Step numbers */
 .step-num{
   display:inline-flex;align-items:center;justify-content:center;
-  width:24px;height:24px;border-radius:50%;
-  background:linear-gradient(135deg,#0066b1,#1c69d4);
-  color:#fff;font-size:12px;font-weight:700;margin-right:10px;flex-shrink:0
+  width:22px;height:22px;background:#0066b1;color:#fff;
+  font-size:11px;font-weight:700;margin-right:12px;flex-shrink:0
 }
 </style>
 </head>
 <body>
-
 <canvas id="bgCanvas"></canvas>
-
-<div class="m-stripe"></div>
-
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <img src="assets/logo.svg" alt="AGENTHOOK" width="180" height="54" style="display:block">
-    </div>
-    <div class="badge">
-      <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank">X LAYER</a> · UNISWAP V4 · <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank">GITHUB</a>
-    </div>
-    <div class="connect-wallet">
-      <button class="btn btn-sm btn-secondary" id="connectBtn" onclick="connectWallet()">CONNECT</button>
-      <span class="address" id="addressDisplay"></span>
-    </div>
-  </div>
-</header>
 
 <div class="container">
 
-  <div class="stats-bar">
-    <div class="stat-card">
-      <div class="stat-label">Agent Instances</div>
-      <div class="stat-value" id="totalAgents">—</div>
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-main">AGENTYIELD</div>
+      <div class="logo-sub">AI YIELD ENGINE · UNISWAP V4</div>
+      <div class="logo-line"></div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Contract</div>
-      <div class="stat-sub" style="font-family:SF Mono,Fira Code,monospace;font-size:11px;margin-top:6px">0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749</div>
-      <div class="stat-sub">PoolManager · <a href="https://www.okx.com/explorer/xlayer/address/0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">0x360E68...</a></div>
+    <div>
+      <button class="wallet-btn" onclick="connectWallet()" id="walletBtn">CONNECT WALLET</button>
+    </div>
+  </header>
+
+  <!-- Tags -->
+  <div class="tag-row">
+    <span class="tag">X LAYER</span>
+    <span class="tag">UNISWAP V4</span>
+    <span class="tag">AI AGENT</span>
+    <span class="tag">AUTO-COMPOUND</span>
+  </div>
+
+  <!-- Global Stats -->
+  <div class="stats" id="globalStats">
+    <div class="stat-box">
+      <div class="stat-label">Total Agents</div>
+      <div class="stat-value" id="statAgents">—</div>
+      <div class="stat-sub">AI agents deployed</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Total TVL</div>
+      <div class="stat-value" id="statTVL">—</div>
+      <div class="stat-sub">ETH deposited</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Network</div>
+      <div class="stat-value" id="statNetwork">X LAYER</div>
+      <div class="stat-sub">Chain 196</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Status</div>
+      <div class="stat-value" id="statStatus">—</div>
+      <div class="stat-sub" id="statStatusSub">loading...</div>
     </div>
   </div>
 
+  <!-- Tabs -->
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('agent')" id="tab-agent">EXPLORER</div>
-    <div class="tab" onclick="switchTab('trading')" id="tab-trading">TRADING</div>
-    <div class="tab" onclick="switchTab('launch')" id="tab-launch">LAUNCH</div>
-    <div class="tab" onclick="switchTab('about')" id="tab-about">ABOUT</div>
+    <div class="tab active" onclick="switchTab('create')">CREATE</div>
+    <div class="tab" onclick="switchTab('agents')">EXPLORE</div>
+    <div class="tab" onclick="switchTab('about')">ABOUT</div>
   </div>
 
-  <div class="panel active" id="panel-agent">
-    <div class="card" style="padding:24px">
+  <!-- TAB: CREATE AGENT -->
+  <div class="panel active" id="panel-create">
+    <div class="card">
+      <div class="card-title"><span class="m-dot"></span>CREATE YOUR AI AGENT</div>
+      <p class="desc-text" style="margin-bottom:20px">
+        Deploy a Uniswap V4 Hook powered by an AI agent in 1 transaction. 
+        No Solidity, no Foundry, no terminal needed.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Agent Name</label>
+        <input class="form-input" id="agentName" placeholder="My Yield Agent" value="MyYieldAgent">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Token 0 Address</label>
+        <input class="form-input" id="token0" placeholder="0x..." value="">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Token 1 Address</label>
+        <input class="form-input" id="token1" placeholder="0x..." value="">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Strategy Mode</label>
+        <select class="form-select" id="strategyMode">
+          <option value="1">⚖️ Balanced — 0.30% fee, medium range (recommended)</option>
+          <option value="0">🚀 Aggressive — 0.01% fee, narrow range, max yield</option>
+          <option value="2">🛡️ Conservative — 1.00% fee, wide range, capital protection</option>
+        </select>
+      </div>
+
+      <div style="margin-top:20px">
+        <button class="btn btn-primary" onclick="createAgent()" id="createBtn">CREATE AGENT</button>
+        <span id="createStatus" class="loading" style="margin-left:12px"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="m-dot"></span>YOUR AGENTS</div>
+      <div id="myAgents" class="loading">Connect wallet to see your agents</div>
+    </div>
+  </div>
+
+  <!-- TAB: EXPLORE -->
+  <div class="panel" id="panel-agents">
+    <div class="card">
       <div class="card-title"><span class="m-dot"></span>AGENT EXPLORER</div>
-      <p style="color:#bbbbbb;font-size:14px;margin-bottom:20px;line-height:1.5;font-weight:300">
-        Look up any AgentHook contract on X Layer by its address.
+      <p class="desc-text" style="margin-bottom:16px">
+        Search any AgentYield Hook on X Layer or browse all agents.
       </p>
-      <div style="display:flex;gap:8px;margin-bottom:20px">
-        <input type="text" id="explorerInput" value="0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749"
-          style="flex:1;padding:12px 14px;background:rgba(13,13,13,.6);border:1px solid #3c3c3c;color:#fff;font-size:13px;outline:none;font-family:SF Mono,Fira Code,monospace;height:40px"
-          placeholder="0x... AgentHook address">
-        <button onclick="lookupAgent()" class="btn" style="white-space:nowrap">SEARCH</button>
-      </div>
-      <div id="resultStatus" class="loading" style="padding:20px">LOADING AGENT DATA...</div>
-      <div id="resultMessages" style="margin-top:8px"></div>
-    </div>
-  </div>
 
-  <div class="panel" id="panel-launch">
+      <div class="explorer-input">
+        <input class="form-input" id="explorerInput" placeholder="0x... AgentYield Hook address">
+        <button class="btn btn-primary" onclick="lookupAgent()">SEARCH</button>
+      </div>
+
+      <div id="explorerResult"></div>
+    </div>
+
     <div class="card">
-      <div class="card-title"><span class="m-dot"></span>LAUNCH AGENT</div>
-      <p style="color:#bbbbbb;font-size:14px;margin-bottom:20px;line-height:1.5;font-weight:300">
-        Deploy your own AgentHook instance for any AI agent. Each instance is a unique Uniswap V4 Hook controlled entirely by the agent wallet — no intermediaries.
-      </p>
-
-      <div style="padding:24px;background:rgba(13,13,13,.5);font-size:13px;color:#bbbbbb;margin-bottom:16px;border:1px solid #262626;line-height:1.8">
-
-        <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">1</span> SET UP ENVIRONMENT</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Install Foundry, clone the repo, and configure your wallet:</div>
-          <pre style="margin:10px 0 0 34px;font-size:11px">git clone https://github.com/oktavian3/agentlaunch-hook.git
-cd agentlaunch-hook
-cp .env.example .env     # set PRIVATE_KEY (the deployer wallet)</pre>
-        </div>
-
-        <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">2</span> DEPLOY THE HOOK</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Run the deployment script with your agent's parameters:</div>
-          <pre style="margin:10px 0 0 34px;font-size:11px">AGENT_NAME="MyAgent" \
-AGENT_DESC="AI agent description" \
-AGENT_FEE=30 \             # fee in bps (30 = 0.30%)
-AGENT_WALLET=0x... \       # wallet that controls the Hook
-forge script script/DeployAgentHook.s.sol \
-  --rpc-url xlayer --broadcast --verify</pre>
-          <div style="color:#7e7e7e;font-size:12px;margin-top:6px;margin-left:34px">● Gas cost ≈ 0.0002 OKB per deploy</div>
-        </div>
-
-        <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">3</span> GET YOUR POOL KEY</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Generate the PoolKey hash to identify your pool:</div>
-          <pre style="margin:10px 0 0 34px;font-size:11px">python3 scripts/get_pool_key.py \
-  &lt;TOKEN0&gt; &lt;TOKEN1&gt; &lt;FEE&gt; &lt;HOOK_ADDRESS&gt;</pre>
-          <div style="color:#7e7e7e;font-size:12px;margin-top:6px;margin-left:34px">● Token addresses must be sorted (lower < higher)<br>● Fee = LP fee tier (3000 = 0.30%)<br>● Output: <code style="font-size:11px">POOL_KEY=0x...</code> — save for verification</div>
-        </div>
-
-        <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">4</span> CREATE A UNISWAP V4 POOL</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Call <code style="font-size:11px">initialize()</code> on the PoolManager (<code style="font-size:11px">0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</code>) with your PoolKey + initial price. The Hook attaches automatically via <code style="font-size:11px">afterInitialize()</code>.</div>
-          <div style="color:#7e7e7e;font-size:12px;margin-top:6px;margin-left:34px">● PoolManager: <code style="font-size:11px">0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</code><br>● Gas cost ≈ 0.0003 OKB</div>
-        </div>
-
-        <div style="margin-bottom:32px">
-          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">5</span> ADD LIQUIDITY</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Provide initial liquidity via the V4 pool position manager so traders can swap against the pool.</div>
-        </div>
-
-        <div style="margin-bottom:0">
-          <div style="color:#fff;font-weight:700;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:12px;display:flex;align-items:center"><span class="step-num">5</span> AGENT GOES LIVE</div>
-          <div style="color:#7e7e7e;font-size:12px;font-weight:300;margin-left:34px">Once swaps occur, the Hook collects fees into the agent's treasury. Set up a cron job for your agent to call:</div>
-          <pre style="margin:10px 0 0 34px;font-size:11px">heartbeat()     — proves the agent is alive (call every 6h)
-postMessage()  — posts on-chain status updates
-setFee()       — dynamically adjusts the swap fee
-withdraw()     — claims accumulated treasury funds</pre>
-        </div>
-      </div>
-
-      <div style="margin-top:16px;padding:16px;background:rgba(13,13,13,.5);border:1px solid #262626;font-size:12px;color:#7e7e7e;line-height:1.8">
-        <strong style="color:#fff;letter-spacing:1px;text-transform:uppercase;font-size:12px">QUICK REFERENCE</strong><br>
-        ● PoolManager: <code style="font-size:11px">0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</code><br>
-        ● Chain: X Layer (ID 196)<br>
-        ● RPC: <code style="font-size:11px">https://rpc.xlayer.tech</code><br>
-        ● Explorer: <a href="https://www.okx.com/explorer/xlayer" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">OKX.COM/EXPLORER/XLAYER</a><br>
-        ● Deploy script: <code style="font-size:11px">script/DeployAgentHook.s.sol</code><br>
-        ● Live example: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">SOULAGENT</a>
-      </div>
+      <div class="card-title"><span class="m-dot"></span>ALL AGENTS</div>
+      <div id="allAgents" class="loading">Loading agents from factory...</div>
     </div>
   </div>
 
-  <div class="panel" id="panel-trading">
-    <div class="card">
-      <div class="card-title"><span class="m-dot"></span>TRADING AGENT</div>
-      <p style="color:#bbbbbb;font-size:14px;margin-bottom:20px;line-height:1.5;font-weight:300">
-        The <strong style="color:#fff">TradingAgent</strong> companion contract lets the AI agent actively manage LP positions, execute swaps, and reinvest treasury fees — transforming from a passive fee collector into an <strong style="color:#fff">active DeFi trader</strong>.
-      </p>
-
-      <!-- How It Works -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px">
-        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px;text-align:center">
-          <div style="font-size:28px;font-weight:700;color:#0066b1;margin-bottom:4px">1</div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff">Read Pool</div>
-          <div style="font-size:11px;color:#7e7e7e;margin-top:4px">Price, TVL, fee accumulated</div>
-        </div>
-        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px;text-align:center">
-          <div style="font-size:28px;font-weight:700;color:#1c69d4;margin-bottom:4px">2</div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff">AI Decide</div>
-          <div style="font-size:11px;color:#7e7e7e;margin-top:4px">Rebalance, reinvest, or hold</div>
-        </div>
-        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px;text-align:center">
-          <div style="font-size:28px;font-weight:700;color:#e22718;margin-bottom:4px">3</div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff">Execute</div>
-          <div style="font-size:11px;color:#7e7e7e;margin-top:4px">Agent wallet signs & sends TX</div>
-        </div>
-      </div>
-
-      <!-- Pool Metrics -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px">
-          <div style="font-size:10px;color:#7e7e7e;text-transform:uppercase;letter-spacing:1px;font-weight:600">Pool TVL</div>
-          <div class="stat-value" style="font-size:22px;color:#fff;margin-top:4px">—</div>
-          <div style="font-size:10px;color:#7e7e7e;margin-top:2px">Total value in pool</div>
-        </div>
-        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px">
-          <div style="font-size:10px;color:#7e7e7e;text-transform:uppercase;letter-spacing:1px;font-weight:600">Current Tick</div>
-          <div class="stat-value" style="font-size:22px;color:#fff;margin-top:4px">—</div>
-          <div style="font-size:10px;color:#7e7e7e;margin-top:2px">Pool price tick</div>
-        </div>
-      </div>
-
-      <!-- Positions Table -->
-      <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7e7e7e;margin-bottom:8px"><span class="m-dot"></span>ACTIVE POSITIONS</div>
-        <div id="tradingPositions" style="background:rgba(13,13,13,.3);border:1px solid #262626;padding:20px;text-align:center;font-size:12px;color:#7e7e7e">
-          Connect wallet to view positions
-        </div>
-      </div>
-
-      <!-- Strategy Config -->
-      <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7e7e7e;margin-bottom:8px"><span class="m-dot"></span>STRATEGY</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:12px">
-            <div style="font-size:10px;color:#7e7e7e;letter-spacing:.5px">Rebalance Threshold</div>
-            <div id="tradingThreshold" style="font-size:16px;color:#fff;margin-top:4px;font-weight:700">2.00%</div>
-          </div>
-          <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:12px">
-            <div style="font-size:10px;color:#7e7e7e;letter-spacing:.5px">Fee Claim Interval</div>
-            <div id="tradingInterval" style="font-size:16px;color:#fff;margin-top:4px;font-weight:700">24h</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <div style="margin-top:16px;padding:16px;background:rgba(13,13,13,.5);border:1px solid #262626;font-size:12px;color:#7e7e7e;line-height:1.8">
-        <strong style="color:#fff;letter-spacing:1px;text-transform:uppercase;font-size:12px">TRADING BOT</strong><br>
-        <div style="margin-top:8px">
-          The <code style="font-size:11px">TradingBot.py</code> runs as a cron job or daemon, analyzing pool state and triggering agent actions:
-        </div>
-        <pre style="margin:10px 0 0 0;font-size:11px">python3 scripts/trading-bot.py              # run once
-python3 scripts/trading-bot.py --loop --interval 300   # every 5 min</pre>
-        <div style="margin-top:8px;color:#bbbbbb">
-          <strong>Contract:</strong> <code style="font-size:11px">TradingAgent.sol</code> — manages LP positions, swaps, reinvests<br>
-          <strong>Bot:</strong> <code style="font-size:11px">scripts/trading-bot.py</code> — AI decision engine<br>
-          <strong>Pool:</strong> Reads on-chain state, triggers rebalance at threshold
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <!-- TAB: ABOUT -->
   <div class="panel" id="panel-about">
     <div class="card">
-      <div class="card-title"><span class="m-dot"></span>ABOUT</div>
-      <p style="font-size:14px;color:#bbbbbb;line-height:1.6;font-weight:300">
-        <strong style="color:#fff;font-weight:700">AGENTHOOK</strong> gives AI agents their own on-chain identity on Uniswap V4. Each Hook instance is owned and controlled by an AI agent — not a human. Agents set fees, accumulate treasury, send heartbeats, and post messages on-chain.
+      <div class="card-title"><span class="m-dot"></span>ABOUT AGENTYIELD</div>
+      <p class="desc-text">
+        <strong style="color:#fff">AgentYield</strong> combines Uniswap V4 Hooks with AI agents to create 
+        autonomous yield engines on X Layer.
       </p>
-      <p style="font-size:14px;color:#bbbbbb;margin-top:16px;line-height:1.6;font-weight:300">
-        <strong style="color:#fff;font-weight:700">1 HOOK = 1 AGENT = 1 POOL</strong>
+      <p class="desc-text" style="margin-top:12px">
+        <strong style="color:#fff">How it works:</strong><br>
+        1. Anyone creates an agent in 1 click from this dashboard<br>
+        2. The factory deploys a Hook + creates a V4 pool in 1 TX<br>
+        3. Users deposit ETH/LP tokens and earn auto-compound yield<br>
+        4. An AI bot reinvests treasury fees for compound growth<br>
+        5. Each agent has its own on-chain personality via messages
       </p>
-      <!-- Architecture diagram -->
-      <div style="display:flex;flex-direction:column;align-items:center;margin:24px 0;position:relative">
-
-        <!-- AI AGENT block -->
-        <div style="background:linear-gradient(135deg,rgba(0,102,177,.12),rgba(28,105,212,.06));border:1px solid rgba(0,102,177,.3);padding:18px 28px;min-width:300px;text-align:center;position:relative">
-          <div style="position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);opacity:.6"></div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="#0066b1"><circle cx="12" cy="12" r="10" stroke="#0066b1" stroke-width="1" fill="none"/><path d="M12 6v12M6 12h12" stroke="#0066b1" stroke-width="1.5"/></svg>
-            <span style="font-size:12px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase">AI Agent</span>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
-            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(0,102,177,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">setFee()</span>
-            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(15,163,54,.25);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">heartbeat()</span>
-            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(15,163,54,.25);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">postMessage()</span>
-            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(28,105,212,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px">withdraw()</span>
-          </div>
-        </div>
-
-        <!-- Connector -->
-        <div style="display:flex;flex-direction:column;align-items:center;padding:6px 0">
-          <svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="0" x2="10" y2="16" stroke="#3c3c3c" stroke-width="1"/><polyline points="4,12 10,20 16,12" fill="none" stroke="#7e7e7e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span style="font-size:8px;color:#555;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px">controls</span>
-        </div>
-
-        <!-- AGENTHOOK INSTANCE block -->
-        <div style="background:linear-gradient(135deg,rgba(28,105,212,.12),rgba(0,102,177,.06));border:1px solid rgba(28,105,212,.3);padding:18px 28px;min-width:300px;text-align:center;position:relative">
-          <div style="position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);opacity:.6"></div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#1c69d4" stroke-width="1.5"/></svg>
-            <span style="font-size:12px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase">AgentHook Instance</span>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
-            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(0,102,177,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px"><span style="color:#0066b1;font-weight:700">beforeSwap</span> → fee</span>
-            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(28,105,212,.3);border-radius:2px;color:#bbbbbb;letter-spacing:.5px"><span style="color:#1c69d4;font-weight:700">afterSwap</span> → treasury</span>
-          </div>
-        </div>
-
-        <!-- Connector -->
-        <div style="display:flex;flex-direction:column;align-items:center;padding:6px 0">
-          <svg width="20" height="24" viewBox="0 0 20 24"><line x1="10" y1="0" x2="10" y2="16" stroke="#3c3c3c" stroke-width="1"/><polyline points="4,12 10,20 16,12" fill="none" stroke="#7e7e7e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span style="font-size:8px;color:#555;letter-spacing:1.5px;text-transform:uppercase;margin-top:1px">attached to</span>
-        </div>
-
-        <!-- UNISWAP V4 POOL block -->
-        <div style="background:linear-gradient(135deg,rgba(226,39,24,.08),rgba(226,39,24,.03));border:1px solid rgba(226,39,24,.25);padding:18px 28px;min-width:300px;text-align:center;position:relative">
-          <div style="position:absolute;top:-1px;left:-1px;right:-1px;height:2px;background:linear-gradient(90deg,#0066b1,#1c69d4,#e22718);opacity:.6"></div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 12L10 16L18 8" stroke="#e22718" stroke-width="2"/><circle cx="12" cy="12" r="10" stroke="#e22718" stroke-width="1" fill="none"/></svg>
-            <span style="font-size:12px;color:#fff;font-weight:700;letter-spacing:2px;text-transform:uppercase">Uniswap V4 Pool</span>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">
-            <span style="font-size:10px;padding:4px 10px;border:1px solid rgba(226,39,24,.25);border-radius:2px;color:#bbbbbb;letter-spacing:.5px"><span style="color:#e22718;font-weight:700">swaps</span> → agent revenue</span>
-          </div>
-        </div>
-      </div>
-      <p style="font-size:12px;color:#7e7e7e;margin-top:16px;line-height:1.8">
-        Contract: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">0x3AD2...A749</a><br>
-        PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32<br>
-        Chain: X Layer (196)<br>
-        <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">GITHUB</a> · <a href="https://x.com/satyaxbt" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">@SATYAXBT</a>
+      <p class="desc-text" style="margin-top:12px">
+        <strong style="color:#fff">Strategy Modes:</strong><br>
+        🚀 Aggressive — 0.01% fee, narrow range, max yield<br>
+        ⚖️ Balanced — 0.30% fee, medium range, standard<br>
+        🛡️ Conservative — 1.00% fee, wide range, capital protection
+      </p>
+      <p class="desc-text" style="margin-top:12px">
+        <strong style="color:#fff">Built on:</strong> X Layer (chain 196) · Uniswap V4 PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32
+      </p>
+      <p class="desc-text" style="margin-top:16px;color:#555">
+        <a href="https://github.com/oktavian3/agentyield-hook" target="_blank" style="color:#fff;text-decoration:none;font-weight:700">GITHUB</a> · <a href="https://x.com/satyaxbt" target="_blank" style="color:#fff;text-decoration:none;font-weight:700">@SATYAXBT</a>
       </p>
     </div>
   </div>
+
 </div>
 
-<footer>
-  AGENTHOOK · AI AGENT-OWNED UNISWAP V4 HOOK · X LAYER
+<footer style="text-align:center;padding:30px;font-size:10px;color:#333;text-transform:uppercase;letter-spacing:2px">
+  AGENTYIELD · AI YIELD ENGINE · UNISWAP V4 · X LAYER
 </footer>
 
 <script>
-// === ANIMATED BACKGROUND (particle network) ===
-const canvas=document.getElementById('bgCanvas');
-const ctx=canvas.getContext('2d');
+// ── CONFIG ─────────────────────────────────────────
+const XLAYER_RPC = 'https://rpc.xlayer.tech';
+const FACTORY_ADDRESS = '0x0000000000000000000000000000000000000000'; // SET AFTER DEPLOY
+const CHAIN_ID = 196;
+
+// Minimal ABIs
+const FACTORY_ABI = [
+  {"inputs":[{"name":"_poolManager","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+  {"inputs":[],"name":"getAgentCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"name":"","type":"uint256"}],"name":"agents","outputs":[{"name":"hookAddress","type":"address"},{"name":"owner","type":"address"},{"name":"name","type":"string"},{"name":"mode","type":"uint8"},{"name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"name":"_name","type":"string"},{"name":"_token0","type":"address"},{"name":"_token1","type":"address"},{"name":"_mode","type":"uint8"}],"name":"createAgent","outputs":[{"name":"agentId","type":"uint256"},{"name":"hookAddress","type":"address"}],"stateMutability":"nonpayable","type":"function"},
+];
+
+const HOOK_ABI = [
+  {"inputs":[],"name":"agentName","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"agentWallet","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"totalDeposits","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"totalFeesCollected","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"treasuryBalance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"estimatedAPY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"getDepositorCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"getMessageCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"name":"index","type":"uint256"}],"name":"getMessage","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"getAgentInfo","outputs":[{"name":"name","type":"string"},{"name":"wallet","type":"address"},{"name":"tvl","type":"uint256"},{"name":"treasury","type":"uint256"},{"name":"totalFees","type":"uint256"},{"name":"depositorCount","type":"uint256"},{"name":"msgCount","type":"uint256"},{"name":"mode","type":"uint8"},{"name":"fee","type":"uint24"},{"name":"liquidity","type":"uint128"},{"name":"alive","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"name":"amount","type":"uint256"}],"name":"deposit","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"name":"amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+];
+
+const MODE_NAMES = ['Aggressive', 'Balanced', 'Conservative'];
+const MODE_EMOJIS = ['🚀', '⚖️', '🛡️'];
+
+let provider, signer, account;
+let factoryContract;
+
+// ── ANIMATED BACKGROUND ──────────────────────────
+const canvas=document.getElementById('bgCanvas'),ctx=canvas.getContext('2d');
 let W,H;
-function resize(){
-  W=canvas.width=window.innerWidth;
-  H=canvas.height=window.innerHeight;
-}
-window.addEventListener('resize',resize);
-resize();
-
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+window.addEventListener('resize',resize);resize();
 const particles=[];
-const COUNT=80;
-const CONNECT_DIST=150;
-
-class Particle{
-  constructor(){
-    this.x=Math.random()*W;
-    this.y=Math.random()*H;
-    this.vx=(Math.random()-.5)*.5;
-    this.vy=(Math.random()-.5)*.5;
-    this.r=Math.random()*1.5+.5;
-  }
-  update(){
-    this.x+=this.vx;this.y+=this.vy;
-    if(this.x<0||this.x>W)this.vx*=-1;
-    if(this.y<0||this.y>H)this.vy*=-1;
-  }
-  draw(){
-    ctx.beginPath();
-    ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,.3)';
-    ctx.fill();
-  }
-}
-
-for(let i=0;i<COUNT;i++)particles.push(new Particle());
-
+for(let i=0;i<60;i++)particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,r:Math.random()*1.5+.5});
 function animate(){
   ctx.clearRect(0,0,W,H);
-  
-  // draw connections
+  for(let p of particles){
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.15)';ctx.fill();
+  }
   for(let i=0;i<particles.length;i++){
     for(let j=i+1;j<particles.length;j++){
-      const dx=particles[i].x-particles[j].x;
-      const dy=particles[i].y-particles[j].y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<CONNECT_DIST){
-        const alpha=1-dist/CONNECT_DIST;
-        ctx.beginPath();
-        ctx.moveTo(particles[i].x,particles[i].y);
-        ctx.lineTo(particles[j].x,particles[j].y);
-        ctx.strokeStyle=`rgba(255,255,255,${alpha*.08})`;
-        ctx.lineWidth=.5;
-        ctx.stroke();
-      }
+      const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(0,102,177,${.08*(1-d/120)})`;ctx.stroke()}
     }
   }
-  
-  particles.forEach(p=>{p.update();p.draw()});
-  requestAnimationFrame(animate);
+  requestAnimationFrame(animate)
 }
 animate();
 
-// === APP LOGIC ===
-const RPC="https://rpc.xlayer.tech";
-const CHAIN_ID=196;
-const EXPLORER="https://www.okx.com/explorer/xlayer";
-const ABI=[
-  "function getAgentInfo() view returns (address,string,string,uint24,uint40,uint40,uint256,uint256,uint256,bytes32,bool)",
-  "function getMessageStruct(uint256) view returns (tuple(address,string,uint256,bytes))",
-  "function getMessageCount() view returns (uint256)",
-  "function heartbeat()",
-  "function postMessage(string)",
-  "function setFee(uint24)",
-  "function setDescription(string)",
-  "function withdraw()",
-  "function treasuryBalance() view returns (uint256)",
-  "function totalFeesCollected() view returns (uint256)"
-];
-let provider;
+// ── WALLET ─────────────────────────────────────────
+async function connectWallet() {
+  if(typeof window.ethereum==='undefined'){document.getElementById('walletBtn').textContent='INSTALL METAMASK';return}
+  try{
+    const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
+    provider=new ethers.BrowserProvider(window.ethereum);
+    signer=await provider.getSigner();
+    account=accounts[0];
+    document.getElementById('walletBtn').textContent=account.slice(0,6)+'...'+account.slice(-4);
+    document.getElementById('statStatus').textContent='🟢 CONNECTED';
+    document.getElementById('statStatusSub').textContent=account.slice(0,10)+'...';
 
-async function init(){
-  provider=new ethers.JsonRpcProvider(RPC,CHAIN_ID);
-  lookupAgent()
-}
-function switchTab(n){
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-  document.getElementById("tab-"+n).classList.add("active");
-  document.getElementById("panel-"+n).classList.add("active")
-}
-async function connectWallet(){
-  if(!window.ethereum)return;
-  try{
-    const a=await window.ethereum.request({method:"eth_requestAccounts"});
-    const bp=new ethers.BrowserProvider(window.ethereum);
-    const s=await bp.getSigner();
-    document.getElementById("addressDisplay").textContent=a[0].slice(0,6)+"..."+a[0].slice(-4);
-    document.getElementById("connectBtn").textContent="CONNECTED"
-  }catch(e){}
-}
-async function lookupAgent(a){
-  const addr=(a||document.getElementById("explorerInput").value||"").trim();
-  if(!addr||!addr.startsWith("0x"))return;
-  document.getElementById("explorerInput").value=addr;
-  const se=document.getElementById("resultStatus");
-  const me=document.getElementById("resultMessages");
-  se.className="loading";
-  se.innerHTML="LOADING AGENT DATA...";
-  me.innerHTML="";
-  try{
-    const c=new ethers.Contract(addr,ABI,provider);
-    const i=await c.getAgentInfo();
-    const w=i[0],nm=i[1],dc=i[2],fe=Number(i[3]),cr=Number(i[4])*1e3,ls=Number(i[5])*1e3;
-    const tr=ethers.formatEther(i[6]),tf=ethers.formatEther(i[7]),mc=Number(i[8]),al=i[10];
-    const na=Math.floor((Date.now()-ls)/1e3);
-    const lstr=na<60?"just now":na<3600?Math.floor(na/60)+"m":Math.floor(na/3600)+"h";
-    se.className="";
-    se.innerHTML=`
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-        <span class="dot ${al?'':'dot-off'}"></span>
-        <span style="font-size:22px;font-weight:700;color:#fff;text-transform:uppercase">${nm}</span>
-        <span style="font-size:11px;padding:3px 10px;background:rgba(13,13,13,.6);color:#7e7e7e;border:1px solid #262626;letter-spacing:.5px">${(fe/100).toFixed(2)}%</span>
-      </div>
-      <div class="grid-2">
-        <div class="stat-row"><span class="l">STATUS</span><span class="r">${al?'<span style="color:#0fa336">● ALIVE</span>':'<span style="color:#e22718">● OFFLINE</span>'}</span></div>
-        <div class="stat-row"><span class="l">HEARTBEAT</span><span class="r">${lstr} ago</span></div>
-        <div class="stat-row"><span class="l">TREASURY</span><span class="r">${tr} ETH</span></div>
-        <div class="stat-row"><span class="l">FEES COLLECTED</span><span class="r">${tf} ETH</span></div>
-        <div class="stat-row"><span class="l">MESSAGES</span><span class="r">${mc}</span></div>
-        <div class="stat-row"><span class="l">AGENT WALLET</span><span class="r" style="font-family:monospace;font-size:11px">${w.slice(0,8)}…${w.slice(-6)}</span></div>
-        <div class="stat-row"><span class="l" style="grid-column:span 2">CONTRACT</span></div>
-      </div>
-      <div style="margin-top:4px;font-family:monospace;font-size:11px;color:#7e7e7e;word-break:break-all">${addr}</div>
-      <div style="margin-top:14px;font-size:13px;color:#bbbbbb;line-height:1.6;font-weight:300">${dc}</div>
-      <div style="margin-top:12px"><a class="explorer-link" href="${EXPLORER}/address/${addr}" target="_blank">VIEW ON EXPLORER →</a></div>`;
-    document.getElementById("totalAgents").textContent="1";
-    if(mc>0){
-      let h='<div style="margin-top:20px"><div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:10px;letter-spacing:1px;text-transform:uppercase">MESSAGES</div>';
-      for(let i=0;i<mc;i++)try{
-        const m=await c.getMessageStruct(i);
-        const ts=new Date(Number(m[2])*1e3).toISOString().replace("T"," ").slice(0,16)+" UTC";
-        h+=`<div class="msg-item">${m[1]}<span class="time">${ts}</span></div>`
-      }catch(e){}
-      me.innerHTML=h+"</div>"
+    // Init factory
+    if(FACTORY_ADDRESS!=='0x0000000000000000000000000000000000000000'){
+      factoryContract=new ethers.Contract(FACTORY_ADDRESS,FACTORY_ABI,signer);
+      loadGlobalStats();
+      loadAllAgents();
+      loadMyAgents(account);
+    }else{
+      document.getElementById('createStatus').textContent='⚠️ Factory not deployed yet';
     }
+  }catch(e){console.error(e)}
+}
+
+// ── TAB SWITCHING ─────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+// ── CREATE AGENT ──────────────────────────────────
+async function createAgent() {
+  if(!signer||!account){document.getElementById('createStatus').textContent='Connect wallet first';return}
+  if(FACTORY_ADDRESS==='0x0000000000000000000000000000000000000000'){document.getElementById('createStatus').textContent='Factory not deployed';return}
+
+  const name=document.getElementById('agentName').value.trim();
+  const t0=document.getElementById('token0').value.trim();
+  const t1=document.getElementById('token1').value.trim();
+  const mode=parseInt(document.getElementById('strategyMode').value);
+
+  if(!name||!t0||!t1){document.getElementById('createStatus').textContent='Fill all fields';return}
+  if(!ethers.isAddress(t0)||!ethers.isAddress(t1)){document.getElementById('createStatus').textContent='Invalid token address';return}
+
+  const btn=document.getElementById('createBtn');
+  const status=document.getElementById('createStatus');
+  btn.disabled=true;
+  status.textContent='⏳ Deploying agent...';
+
+  try{
+    const tx=await factoryContract.createAgent(name,t0,t1,mode);
+    const receipt=await tx.wait();
+    status.innerHTML=`✅ Agent deployed! TX: <a href="https://www.okx.com/explorer/xlayer/tx/${receipt.hash}" target="_blank" style="color:#0066b1">${receipt.hash.slice(0,10)}...</a>`;
+    loadMyAgents(account);
+    loadAllAgents();
   }catch(e){
-    se.className="";
-    se.innerHTML=`<div style="padding:12px 14px;border:1px solid #e22718;color:#e22718;font-size:12px;letter-spacing:.5px">FAILED TO LOAD AGENT DATA. MAKE SURE THE ADDRESS IS A VALID AGENTHOOK CONTRACT ON X LAYER.</div>`
+    status.textContent='❌ '+e.message.slice(0,100);
+  }
+  btn.disabled=false;
+}
+
+// ── EXPLORER ──────────────────────────────────────
+async function lookupAgent() {
+  const addr=document.getElementById('explorerInput').value.trim();
+  if(!addr||!ethers.isAddress(addr)){document.getElementById('explorerResult').innerHTML='<div class="error">Invalid address</div>';return}
+
+  const result=document.getElementById('explorerResult');
+  result.innerHTML='<div class="loading">Loading...</div>';
+
+  try{
+    const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
+    const code=await rpc.getCode(addr);
+    if(code==='0x'){result.innerHTML='<div class="error">Not a contract</div>';return}
+
+    const hook=new ethers.Contract(addr,HOOK_ABI,rpc);
+    const info=await hook.getAgentInfo();
+
+    const name=info[0],wallet=info[1],tvl=ethers.formatEther(info[2]);
+    const treasury=ethers.formatEther(info[3]),fees=ethers.formatEther(info[4]);
+    const depCount=info[5],msgCount=info[6],mode=Number(info[7]),fee=Number(info[8]);
+    const alive=info[10];
+
+    let apy='0';
+    try{const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2)}catch(e){}
+
+    let msgsHtml='';
+    try{
+      for(let i=Math.max(0,msgCount-5);i<msgCount;i++){
+        const m=await hook.getMessage(i);
+        msgsHtml+=`<div class="msg-item">${m}</div>`;
+      }
+    }catch(e){}
+
+    result.innerHTML=`
+      <div class="agent-card">
+        <div class="agent-name">${MODE_EMOJIS[mode]} ${name}</div>
+        <div class="agent-meta">${addr.slice(0,10)}...${addr.slice(-6)}</div>
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><div style="font-size:9px;color:#555;text-transform:uppercase">TVL</div><div style="font-size:16px;color:#fff;font-weight:700">${parseFloat(tvl).toFixed(4)} ETH</div></div>
+          <div><div style="font-size:9px;color:#555;text-transform:uppercase">APY</div><div style="font-size:16px;color:#fff;font-weight:700">${apy}%</div></div>
+          <div><div style="font-size:9px;color:#555;text-transform:uppercase">Mode</div><div style="font-size:13px;color:#fff;font-weight:700">${MODE_NAMES[mode]}</div></div>
+        </div>
+        <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px;color:#666">
+          <div>Fee: ${(fee/100).toFixed(2)}%</div>
+          <div>Depositors: ${depCount}</div>
+          <div>Status: ${alive?'🟢 Alive':'🔴 Offline'}</div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#666">
+          Treasury: ${parseFloat(treasury).toFixed(6)} ETH · Total Fees: ${parseFloat(fees).toFixed(6)} ETH
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:#555">
+          Wallet: ${wallet.slice(0,10)}...${wallet.slice(-6)}
+        </div>
+      </div>
+      ${msgCount>0?`
+        <div style="margin-top:12px">
+          <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600">Recent Messages</div>
+          ${msgsHtml}
+        </div>
+      `:''}
+      <div style="margin-top:12px">
+        <a href="https://www.okx.com/explorer/xlayer/address/${addr}" target="_blank" class="btn btn-ghost" style="display:inline-block;text-decoration:none">VIEW ON EXPLORER</a>
+      </div>
+    `;
+  }catch(e){
+    result.innerHTML=`<div class="error">Error: ${e.message.slice(0,100)}</div>`;
   }
 }
-init()
+
+// ── GLOBAL STATS ──────────────────────────────────
+async function loadGlobalStats() {
+  if(!factoryContract)return;
+  try{
+    const count=await factoryContract.getAgentCount();
+    document.getElementById('statAgents').textContent=count;
+    document.getElementById('statStatus').textContent='🟢 ONLINE';
+    document.getElementById('statStatusSub').textContent=count+' agents';
+  }catch(e){}
+}
+
+// ── ALL AGENTS ────────────────────────────────────
+async function loadAllAgents() {
+  if(!factoryContract)return;
+  const container=document.getElementById('allAgents');
+  try{
+    const count=await factoryContract.getAgentCount();
+    if(count==0){container.innerHTML='<div class="loading">No agents deployed yet</div>';return}
+
+    let html='';
+    const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
+
+    for(let i=count-1;i>=Math.max(0,count-20);i--){
+      const agent=await factoryContract.agents(i);
+      const addr=agent[0],owner=agent[1],name=agent[2],mode=Number(agent[3]);
+
+      let tvl='0',apy='0',status='⚪';
+      try{
+        const hook=new ethers.Contract(addr,HOOK_ABI,rpc);
+        const info=await hook.getAgentInfo();
+        tvl=parseFloat(ethers.formatEther(info[2])).toFixed(4);
+        const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2);
+        if(info[10])status=MODE_EMOJIS[mode];
+        else status='🔴';
+      }catch(e){}
+
+      html+=`
+        <div class="agent-card" style="cursor:pointer" onclick="document.getElementById('explorerInput').value='${addr}';switchTab('agents');lookupAgent()">
+          <div class="agent-name">${status} ${name}</div>
+          <div class="agent-meta">${addr.slice(0,10)}...${addr.slice(-6)} · by ${owner.slice(0,6)}...${owner.slice(-4)}</div>
+          <div style="margin-top:6px;font-size:11px;color:#666;display:flex;gap:16px">
+            <span>TVL: <strong style="color:#fff">${tvl} ETH</strong></span>
+            <span>APY: <strong style="color:#fff">${apy}%</strong></span>
+            <span>Mode: <strong style="color:#fff">${MODE_NAMES[mode]}</strong></span>
+          </div>
+        </div>
+      `;
+    }
+    container.innerHTML=html;
+  }catch(e){container.innerHTML='<div class="error">Error loading agents</div>'}
+}
+
+// ── MY AGENTS ─────────────────────────────────────
+async function loadMyAgents(addr) {
+  if(!factoryContract)return;
+  const container=document.getElementById('myAgents');
+  try{
+    const count=await factoryContract.getAgentCount();
+    let found=false;
+    let html='';
+
+    for(let i=0;i<count;i++){
+      const agent=await factoryContract.agents(i);
+      if(agent[1].toLowerCase()===addr.toLowerCase()){
+        found=true;
+        html+=`
+          <div class="agent-card">
+            <div class="agent-name">${MODE_EMOJIS[Number(agent[3])]} ${agent[2]}</div>
+            <div class="agent-meta">${agent[0].slice(0,10)}...${agent[0].slice(-6)}</div>
+            <div style="margin-top:8px;font-size:11px;color:#666">
+              <a href="#" onclick="document.getElementById('explorerInput').value='${agent[0]}';switchTab('agents');lookupAgent();return false" style="color:#0066b1">View Details →</a>
+            </div>
+          </div>
+        `;
+      }
+    }
+    container.innerHTML=found?html:'<div class="loading">No agents yet. Create one above!</div>';
+  }catch(e){container.innerHTML='<div class="loading">Connect wallet to see your agents</div>'}
+}
+
+// ── INIT ──────────────────────────────────────────
+// Try to auto-connect if wallet already authorized
+window.addEventListener('load',async()=>{
+  if(typeof window.ethereum!=='undefined'){
+    try{
+      const accounts=await window.ethereum.request({method:'eth_accounts'});
+      if(accounts.length>0)await connectWallet();
+    }catch(e){}
+  }
+  document.getElementById('statStatus').textContent='⚪ DISCONNECTED';
+  document.getElementById('statStatusSub').textContent='connect wallet';
+});
 </script>
 </body>
 </html>
