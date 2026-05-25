@@ -245,6 +245,7 @@ pre{
 
   <div class="tabs">
     <div class="tab active" onclick="switchTab('agent')" id="tab-agent">EXPLORER</div>
+    <div class="tab" onclick="switchTab('trading')" id="tab-trading">TRADING</div>
     <div class="tab" onclick="switchTab('launch')" id="tab-launch">LAUNCH</div>
     <div class="tab" onclick="switchTab('about')" id="tab-about">ABOUT</div>
   </div>
@@ -332,6 +333,86 @@ withdraw()     — claims accumulated treasury funds</pre>
         ● Explorer: <a href="https://www.okx.com/explorer/xlayer" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">OKX.COM/EXPLORER/XLAYER</a><br>
         ● Deploy script: <code style="font-size:11px">script/DeployAgentHook.s.sol</code><br>
         ● Live example: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#fff;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.5px">SOULAGENT</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-trading">
+    <div class="card">
+      <div class="card-title"><span class="m-dot"></span>TRADING AGENT</div>
+      <p style="color:#bbbbbb;font-size:14px;margin-bottom:20px;line-height:1.5;font-weight:300">
+        The <strong style="color:#fff">TradingAgent</strong> companion contract lets the AI agent actively manage LP positions, execute swaps, and reinvest treasury fees — transforming from a passive fee collector into an <strong style="color:#fff">active DeFi trader</strong>.
+      </p>
+
+      <!-- How It Works -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px">
+        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:#0066b1;margin-bottom:4px">1</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff">Read Pool</div>
+          <div style="font-size:11px;color:#7e7e7e;margin-top:4px">Price, TVL, fee accumulated</div>
+        </div>
+        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:#1c69d4;margin-bottom:4px">2</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff">AI Decide</div>
+          <div style="font-size:11px;color:#7e7e7e;margin-top:4px">Rebalance, reinvest, or hold</div>
+        </div>
+        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:#e22718;margin-bottom:4px">3</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff">Execute</div>
+          <div style="font-size:11px;color:#7e7e7e;margin-top:4px">Agent wallet signs & sends TX</div>
+        </div>
+      </div>
+
+      <!-- Pool Metrics -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px">
+          <div style="font-size:10px;color:#7e7e7e;text-transform:uppercase;letter-spacing:1px;font-weight:600">Pool TVL</div>
+          <div class="stat-value" style="font-size:22px;color:#fff;margin-top:4px">—</div>
+          <div style="font-size:10px;color:#7e7e7e;margin-top:2px">Total value in pool</div>
+        </div>
+        <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:16px">
+          <div style="font-size:10px;color:#7e7e7e;text-transform:uppercase;letter-spacing:1px;font-weight:600">Current Tick</div>
+          <div class="stat-value" style="font-size:22px;color:#fff;margin-top:4px">—</div>
+          <div style="font-size:10px;color:#7e7e7e;margin-top:2px">Pool price tick</div>
+        </div>
+      </div>
+
+      <!-- Positions Table -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7e7e7e;margin-bottom:8px"><span class="m-dot"></span>ACTIVE POSITIONS</div>
+        <div id="tradingPositions" style="background:rgba(13,13,13,.3);border:1px solid #262626;padding:20px;text-align:center;font-size:12px;color:#7e7e7e">
+          Connect wallet to view positions
+        </div>
+      </div>
+
+      <!-- Strategy Config -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7e7e7e;margin-bottom:8px"><span class="m-dot"></span>STRATEGY</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:12px">
+            <div style="font-size:10px;color:#7e7e7e;letter-spacing:.5px">Rebalance Threshold</div>
+            <div id="tradingThreshold" style="font-size:16px;color:#fff;margin-top:4px;font-weight:700">2.00%</div>
+          </div>
+          <div style="background:rgba(13,13,13,.5);border:1px solid #262626;padding:12px">
+            <div style="font-size:10px;color:#7e7e7e;letter-spacing:.5px">Fee Claim Interval</div>
+            <div id="tradingInterval" style="font-size:16px;color:#fff;margin-top:4px;font-weight:700">24h</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="margin-top:16px;padding:16px;background:rgba(13,13,13,.5);border:1px solid #262626;font-size:12px;color:#7e7e7e;line-height:1.8">
+        <strong style="color:#fff;letter-spacing:1px;text-transform:uppercase;font-size:12px">TRADING BOT</strong><br>
+        <div style="margin-top:8px">
+          The <code style="font-size:11px">TradingBot.py</code> runs as a cron job or daemon, analyzing pool state and triggering agent actions:
+        </div>
+        <pre style="margin:10px 0 0 0;font-size:11px">python3 scripts/trading-bot.py              # run once
+python3 scripts/trading-bot.py --loop --interval 300   # every 5 min</pre>
+        <div style="margin-top:8px;color:#bbbbbb">
+          <strong>Contract:</strong> <code style="font-size:11px">TradingAgent.sol</code> — manages LP positions, swaps, reinvests<br>
+          <strong>Bot:</strong> <code style="font-size:11px">scripts/trading-bot.py</code> — AI decision engine<br>
+          <strong>Pool:</strong> Reads on-chain state, triggers rebalance at threshold
+        </div>
       </div>
     </div>
   </div>

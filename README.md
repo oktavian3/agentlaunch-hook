@@ -304,6 +304,105 @@ X Layer faucet: https://www.okx.com/faucet
 
 ---
 
+## 🤖 AI Trading Agent
+
+> **Coming in v2: transform your passive fee-collector Hook into an active DeFi trader.**
+
+AgentHook's companion **TradingAgent** contract lets the AI agent actively manage LP positions, execute swaps, and reinvest treasury fees — generating real returns instead of just collecting dust.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    TradingBot.py (AI Brain)                   │
+│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
+│  │ PoolReader    │→│ StrategyEngine│→│ Executor          │  │
+│  │ (on-chain tx) │  │ (thresholds)  │  │ (TX signing)     │  │
+│  └──────────────┘  └───────────────┘  └──────────────────┘  │
+└─────────────────────────┬───────────────────────────────────┘
+                          │ signs with agent wallet
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│              TradingAgent.sol (On-Chain Manager)              │
+│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
+│  │ openPosition  │  │ executeSwap   │  │ reinvestFees     │  │
+│  │ closePosition │  │ (V4 pool)     │  │ (treasury→LP)    │  │
+│  │ rebalance     │  │               │  │                  │  │
+│  └──────┬───────┘  └───────┬───────┘  └────────┬─────────┘  │
+└─────────┼──────────────────┼────────────────────┼────────────┘
+          │                  │                    │
+          ▼                  ▼                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  Uniswap V4 PoolManager                       │
+│              modifyLiquidity() · swap()                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Contract: TradingAgent.sol
+
+Deploy this alongside your AgentHook to give your agent trading capabilities:
+
+```solidity
+// Deploy TradingAgent with:
+//   - PoolManager address
+//   - Your AgentHook address (where treasury accumulates)
+//   - Your agent wallet address
+```
+
+| Function | Description |
+|----------|-------------|
+| `openPosition(poolKey, tickLower, tickUpper, amount0Max, amount1Max)` | Open a new LP position in any V4 pool |
+| `closePosition(positionId)` | Remove liquidity and return tokens to agent |
+| `rebalancePosition(positionId, newTickLower, newTickUpper, newLiquidity)` | Move position to new price range |
+| `executeSwap(poolKey, zeroForOne, amountSpecified, sqrtPriceLimit)` | Execute a swap through the V4 pool |
+| `reinvestFees(positionId, amount)` | Pull treasury fees into LP position |
+| `updateStrategy(thresholdBps, claimInterval, active)` | Update AI trading parameters |
+
+### Bot: TradingBot.py
+
+The Python bot is the **AI decision engine**:
+
+```bash
+# Run once (test)
+python3 scripts/trading-bot.py
+
+# Continuous loop (every 5 minutes)
+python3 scripts/trading-bot.py --loop --interval 300
+
+# Via cron (every 30 minutes)
+*/30 * * * * cd /path/to/agentlaunch-hook && python3 scripts/trading-bot.py
+```
+
+**What it does each cycle:**
+
+1. **Phase 1 — Read**: Fetches pool state (current tick, TVL, treasury balance, positions)
+2. **Phase 2 — Decide**: Analyzes price movement against threshold, checks treasury for reinvestment
+3. **Phase 3 — Execute**: Signs & sends transactions via agent wallet
+   - Heartbeat if stale
+   - Reinvest fees if treasury > threshold
+   - Rebalance position if price moved past threshold
+   - Post on-chain status message
+
+### Configuration
+
+```bash
+# In your .env
+TRADING_AGENT=0x...           # Deployed TradingAgent address
+POOL_TOKEN0=0x...             # Pool token addresses
+POOL_TOKEN1=0x...
+REBALANCE_THRESHOLD=200       # 2% price move triggers rebalance
+FEE_CLAIM_INTERVAL=24         # hours between fee claims
+MIN_TREASURY=0.001            # minimum ETH before reinvesting
+```
+
+### Test
+
+```bash
+forge test --match-path test/TradingAgent.t.sol -vvv
+```
+
+---
+
 ## 🔐 Agent Control Functions
 
 | Function | Callable By | Description |
