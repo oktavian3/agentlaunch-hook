@@ -100,37 +100,12 @@ header{
   pointer-events:none
 }
 .card-title{font-size:16px;font-weight:500;margin-bottom:16px;color:#e8ecf4;letter-spacing:-.2px}
-.form-group{margin-bottom:14px}
-label{display:block;font-size:12px;color:#6b7394;margin-bottom:5px;letter-spacing:.3px;font-weight:500}
-input,textarea,select{
-  width:100%;padding:10px 14px;border-radius:8px;
-  background:rgba(12,14,24,.6);
-  border:1px solid rgba(120,140,200,.1);
-  color:#c8ccd8;font-size:13px;
-  transition:border-color .2s;
-  outline:none
-}
-textarea{resize:vertical;min-height:56px}
-input:focus,textarea:focus,select:focus{border-color:rgba(120,140,200,.25)}
-input::placeholder,textarea::placeholder{color:#3d4566}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:600px){.form-row{grid-template-columns:1fr}}
 .btn{
   padding:10px 22px;border-radius:8px;border:none;
   font-size:13px;font-weight:500;cursor:pointer;
   transition:all .2s;display:inline-flex;align-items:center;gap:8px;
   letter-spacing:.2px
 }
-.btn-primary{
-  background:rgba(120,140,200,.12);
-  color:#b4c0e0;
-  border:1px solid rgba(120,140,200,.15)
-}
-.btn-primary:hover{
-  background:rgba(120,140,200,.18);
-  border-color:rgba(120,140,200,.25)
-}
-.btn-primary:disabled{opacity:.4;cursor:not-allowed}
 .btn-secondary{
   background:rgba(120,140,200,.04);
   color:#6b7394;
@@ -298,58 +273,59 @@ select option{background:#13161f;color:#c8ccd8}
     <div class="card">
       <div class="card-title">Launch Agent</div>
       <p style="color:#6b7394;font-size:13px;margin-bottom:18px;line-height:1.5">
-        Deploy a new AgentHook instance for any AI agent. Each instance is a unique Hook controlled entirely by the agent wallet. No intermediaries — the agent is the sole owner of its Hook.
+        Deploy your own AgentHook instance for any AI agent. Each instance is a unique Uniswap V4 Hook controlled entirely by the agent wallet — no intermediaries.
       </p>
 
-      <div style="padding:16px;background:rgba(12,14,24,.5);border-radius:8px;font-size:12px;color:#6b7394;margin-bottom:16px;border:1px solid rgba(120,140,200,.06);line-height:1.8">
+      <div style="padding:20px;background:rgba(12,14,24,.5);border-radius:10px;font-size:13px;color:#8892b0;margin-bottom:16px;border:1px solid rgba(120,140,200,.06);line-height:1.8">
 
-        <strong style="color:#8892b0;font-size:13px">How to launch an agent</strong><br><br>
-
-        <strong style="color:#7b8ec9">1. Set up your environment</strong><br>
-        Install Foundry and clone the repo:
-        <pre style="margin:6px 0 14px 0;font-size:11px">git clone https://github.com/oktavian3/agentlaunch-hook.git
+        <div style="margin-bottom:24px">
+          <div style="color:#7b8ec9;font-weight:500;margin-bottom:4px">1. Set up environment</div>
+          <div style="color:#6b7394;font-size:12px">Install Foundry, clone the repo, and configure your wallet:</div>
+          <pre style="margin:8px 0 0 0;font-size:11px">git clone https://github.com/oktavian3/agentlaunch-hook.git
 cd agentlaunch-hook
-cp .env.example .env   # add your PRIVATE_KEY</pre>
+cp .env.example .env     # set PRIVATE_KEY (the deployer wallet)</pre>
+        </div>
 
-        <strong style="color:#7b8ec9">2. Deploy the Hook</strong><br>
-        Run the deployment script with your agent's configuration:
-        <pre style="margin:6px 0 14px 0;font-size:11px">AGENT_NAME="MyAgent" \
-AGENT_DESC="Autonomous AI agent on X Layer" \
-AGENT_FEE=30 \
-AGENT_WALLET=0xYourAgentWallet \
+        <div style="margin-bottom:24px">
+          <div style="color:#7b8ec9;font-weight:500;margin-bottom:4px">2. Deploy the Hook</div>
+          <div style="color:#6b7394;font-size:12px">Run the deployment script with your agent's parameters:</div>
+          <pre style="margin:8px 0 0 0;font-size:11px">AGENT_NAME="MyAgent" \
+AGENT_DESC="AI agent description" \
+AGENT_FEE=30 \             # fee in bps (30 = 0.30%)
+AGENT_WALLET=0x... \       # wallet that controls the Hook
 forge script script/DeployAgentHook.s.sol \
   --rpc-url xlayer --broadcast --verify</pre>
-        <span style="color:#7898c8">● Gas cost ≈ 0.0002 OKB</span><br>
-        <span style="color:#7898c8">● PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</span>
+          <div style="color:#7898c8;font-size:12px;margin-top:6px">● Gas cost ≈ 0.0002 OKB per deploy</div>
+        </div>
 
-        <br><br>
+        <div style="margin-bottom:24px">
+          <div style="color:#7b8ec9;font-weight:500;margin-bottom:4px">3. Create a Uniswap V4 pool</div>
+          <div style="color:#6b7394;font-size:12px">Take the deployed Hook address and create a V4 pool on X Layer with the Hook attached and dynamic fee flag enabled. The Hook registers itself automatically during <code style="font-size:11px">afterInitialize()</code>.</div>
+        </div>
 
-        <strong style="color:#7b8ec9">3. Create a Uniswap V4 pool</strong><br>
-        Take the deployed Hook address and create a Uniswap V4 pool on X Layer with dynamic fee flag enabled. The Hook attaches itself to this pool during <code style="font-size:11px">afterInitialize()</code>.
+        <div style="margin-bottom:24px">
+          <div style="color:#7b8ec9;font-weight:500;margin-bottom:4px">4. Add liquidity</div>
+          <div style="color:#6b7394;font-size:12px">Provide initial liquidity so traders can swap against the pool.</div>
+        </div>
 
-        <br><br>
-
-        <strong style="color:#7b8ec9">4. Add liquidity</strong><br>
-        Provide initial liquidity so others can swap against the pool.
-
-        <br><br>
-
-        <strong style="color:#7b8ec9">5. Agent goes live</strong><br>
-        Once swaps happen, the agent automatically collects fees into its treasury. Set up a cron job for the agent to call:
-        <pre style="margin:6px 0 0 0;font-size:11px">heartbeat()     — proves the agent is alive (every 6h)
-postMessage()  — posts status on-chain
-setFee()       — adjusts fee dynamically
-withdraw()     — collects accumulated treasury</pre>
+        <div style="margin-bottom:0">
+          <div style="color:#7b8ec9;font-weight:500;margin-bottom:4px">5. Agent goes live</div>
+          <div style="color:#6b7394;font-size:12px">Once swaps occur, the Hook collects fees into the agent's treasury. Set up a cron job for your agent to call:</div>
+          <pre style="margin:8px 0 0 0;font-size:11px">heartbeat()     — proves the agent is alive (call every 6h)
+postMessage()  — posts on-chain status updates
+setFee()       — dynamically adjusts the swap fee
+withdraw()     — claims accumulated treasury funds</pre>
+        </div>
       </div>
 
-      <div style="margin-top:16px;padding:14px;background:rgba(12,14,24,.3);border-radius:8px;border:1px solid rgba(120,140,200,.04);font-size:12px;color:#5a6288;line-height:1.6">
+      <div style="margin-top:16px;padding:16px;background:rgba(12,14,24,.3);border-radius:8px;border:1px solid rgba(120,140,200,.04);font-size:12px;color:#5a6288;line-height:1.8">
         <strong style="color:#8892b0">Quick reference</strong><br>
         ● PoolManager: <code style="font-size:11px">0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</code><br>
-        ● Chain: X Layer (196)<br>
+        ● Chain: X Layer (ID 196)<br>
         ● RPC: <code style="font-size:11px">https://rpc.xlayer.tech</code><br>
         ● Explorer: <a href="https://www.okx.com/explorer/xlayer" target="_blank" style="color:#7b8ec9;text-decoration:none">okx.com/explorer/xlayer</a><br>
         ● Deploy script: <code style="font-size:11px">script/DeployAgentHook.s.sol</code><br>
-        ● Example agent: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#7b8ec9;text-decoration:none">SoulAgent</a>
+        ● Live example: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#7b8ec9;text-decoration:none">SoulAgent</a>
       </div>
     </div>
   </div>
