@@ -3,451 +3,452 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentHook — AI Agent-Owned Uniswap V4 Hook</title>
+  <title>AgentHook</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a1a;
-      color: #e0e0f0;
-      min-height: 100vh;
-    }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    header {
-      background: linear-gradient(135deg, #0f0f2e, #1a1a4e);
-      border-bottom: 1px solid #2a2a5e;
-      padding: 20px 0;
-    }
-    .header-inner {
-      max-width: 1200px; margin: 0 auto; padding: 0 20px;
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;
-    }
-    .logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 24px; font-weight: 700;
-      background: linear-gradient(135deg, #6e4fff, #ff4fe6);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .logo svg { width: 32px; height: 32px; }
-    .badge {
-      background: #2a2a5e; padding: 6px 14px; border-radius: 20px;
-      font-size: 12px; color: #a0a0d0;
-    }
-    .badge a { color: #6e4fff; text-decoration: none; }
-    .stats-bar {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px; margin: 25px 0;
-    }
-    .stat-card {
-      background: linear-gradient(135deg, #12122a, #1a1a3a);
-      border: 1px solid #2a2a5e;
-      border-radius: 12px; padding: 18px;
-    }
-    .stat-label { font-size: 12px; color: #8080b0; text-transform: uppercase; letter-spacing: 1px; }
-    .stat-value { font-size: 28px; font-weight: 700; margin-top: 5px; background: linear-gradient(135deg, #6e4fff, #ff4fe6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .stat-sub { font-size: 12px; color: #606090; margin-top: 3px; word-break: break-all; }
-    .tabs {
-      display: flex; gap: 2px; margin-bottom: 25px;
-      background: #12122a; border-radius: 12px; padding: 4px;
-      border: 1px solid #2a2a5e;
-    }
-    .tab {
-      flex: 1; padding: 12px 20px; text-align: center; border-radius: 10px;
-      cursor: pointer; font-size: 14px; font-weight: 500;
-      transition: all 0.2s; color: #8080b0;
-    }
-    .tab.active { background: linear-gradient(135deg, #6e4fff33, #ff4fe633); color: #fff; border: 1px solid #6e4fff44; }
-    .tab:hover { color: #fff; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-    .card {
-      background: linear-gradient(135deg, #12122a, #1a1a3a);
-      border: 1px solid #2a2a5e;
-      border-radius: 12px; padding: 24px; margin-bottom: 20px;
-    }
-    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: #8080b0; margin-bottom: 5px; }
-    input, textarea, select {
-      width: 100%; padding: 12px; border-radius: 8px;
-      background: #0a0a1a; border: 1px solid #2a2a5e;
-      color: #e0e0f0; font-size: 14px;
-    }
-    textarea { resize: vertical; min-height: 60px; }
-    input:focus, textarea:focus { outline: none; border-color: #6e4fff; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
-    .btn {
-      padding: 12px 24px; border-radius: 10px; border: none;
-      font-size: 15px; font-weight: 600; cursor: pointer;
-      transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #6e4fff, #ff4fe6);
-      color: #fff;
-    }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px #6e4fff44; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .btn-secondary { background: #2a2a5e; color: #e0e0f0; }
-    .btn-secondary:hover { background: #3a3a6e; }
-    .btn-sm { padding: 8px 16px; font-size: 13px; }
-    .agent-card {
-      background: linear-gradient(135deg, #12122a, #1a1a3a);
-      border: 1px solid #2a2a5e;
-      border-radius: 12px; padding: 20px;
-      transition: all 0.2s;
-    }
-    .agent-card:hover { border-color: #6e4fff; transform: translateY(-2px); }
-    .agent-card .name { font-size: 18px; font-weight: 600; }
-    .agent-card .sub { font-size: 13px; color: #606090; margin-top: 4px; font-family: monospace; word-break: break-all; }
-    .agent-card .meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
-    .agent-card .meta span {
-      font-size: 11px; padding: 3px 8px; border-radius: 6px;
-      background: #1a1a3a; color: #8080b0;
-    }
-    .agent-card .badge-alive {
-      display: inline-block; margin-top: 10px;
-      background: #00ff8822; color: #00ff88; padding: 4px 10px; border-radius: 6px;
-      font-size: 12px; font-weight: 500;
-    }
-    .agent-card .badge-dead {
-      display: inline-block; margin-top: 10px;
-      background: #ff444422; color: #ff4444; padding: 4px 10px; border-radius: 6px;
-      font-size: 12px; font-weight: 500;
-    }
-    .status {
-      margin-top: 10px; padding: 10px; border-radius: 8px;
-      font-size: 13px;
-    }
-    .status.success { background: #00ff8822; border: 1px solid #00ff8844; color: #00ff88; }
-    .status.error { background: #ff444422; border: 1px solid #ff444444; color: #ff4444; }
-    .status.info { background: #4488ff22; border: 1px solid #4488ff44; color: #4488ff; }
-    .status.pending { background: #ffaa0022; border: 1px solid #ffaa0044; color: #ffaa00; }
-    .connect-wallet { display: flex; align-items: center; gap: 10px; }
-    .connect-wallet .address { font-size: 13px; color: #8080b0; font-family: monospace; }
-    .explorer-link { font-size: 12px; color: #6e4fff; text-decoration: none; }
-    .explorer-link:hover { text-decoration: underline; }
-    .loading { text-align: center; padding: 40px; color: #8080b0; }
-    .loading::after {
-      content: ''; display: inline-block; width: 20px; height: 20px;
-      border: 2px solid #6e4fff; border-top: 2px solid transparent;
-      border-radius: 50%; animation: spin 0.8s linear infinite;
-      margin-left: 8px; vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .empty-state { text-align: center; padding: 60px 20px; color: #606090; }
-    .empty-state h3 { font-size: 18px; margin-bottom: 8px; }
-    .empty-state p { font-size: 14px; }
-    .msg-item {
-      background: #0a0a1a; border: 1px solid #2a2a5e; border-radius: 8px;
-      padding: 12px; margin-bottom: 8px; font-size: 13px;
-    }
-    .msg-item .time { color: #606090; font-size: 11px; }
-    footer {
-      text-align: center; padding: 30px; color: #404070; font-size: 13px;
-      border-top: 1px solid #1a1a3a; margin-top: 40px;
-    }
-    code { background: #1a1a3a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-    pre { background: #0a0a1a; padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; margin: 8px 0; }
-  </style>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,sans-serif;
+  background:#13161f;
+  color:#c8ccd8;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:radial-gradient(ellipse 70% 60% at 85% 20%,rgba(55,80,160,.06),transparent),
+             radial-gradient(ellipse 80% 50% at 20% 80%,rgba(90,60,160,.04),transparent);
+  pointer-events:none;z-index:0
+}
+.container{max-width:1200px;margin:0 auto;padding:20px;position:relative;z-index:1}
+header{
+  background:rgba(19,22,31,.85);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(120,140,200,.08);
+  padding:16px 0;position:sticky;top:0;z-index:100
+}
+.header-inner{
+  max-width:1200px;margin:0 auto;padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px
+}
+.logo{
+  display:flex;align-items:center;gap:10px;
+  font-size:20px;font-weight:600;letter-spacing:-.3px;
+  color:#e8ecf4
+}
+.logo svg{width:28px;height:28px}
+.logo-accent{color:#7b8ec9;font-weight:400}
+.badge{
+  background:rgba(120,140,200,.06);
+  padding:5px 14px;border-radius:100px;
+  font-size:12px;color:#8892b0;border:1px solid rgba(120,140,200,.08);
+  letter-spacing:.2px
+}
+.badge a{color:#7b8ec9;text-decoration:none}
+.stats-bar{
+  display:grid;grid-template-columns:1fr 1.5fr;
+  gap:12px;margin:24px 0
+}
+.stat-card{
+  background:rgba(24,28,42,.6);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(120,140,200,.08);
+  border-radius:12px;padding:18px 20px;
+  position:relative;overflow:hidden
+}
+.stat-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(120,140,200,.03),transparent 60%);
+  pointer-events:none
+}
+.stat-label{font-size:11px;color:#6b7394;text-transform:uppercase;letter-spacing:.8px;font-weight:500}
+.stat-value{font-size:26px;font-weight:500;margin-top:4px;color:#e8ecf4;letter-spacing:-.5px}
+.stat-sub{font-size:12px;color:#5a6288;margin-top:4px;word-break:break-all;line-height:1.5}
+.tabs{
+  display:flex;gap:2px;margin-bottom:24px;
+  background:rgba(24,28,42,.4);
+  border-radius:10px;padding:4px;
+  border:1px solid rgba(120,140,200,.06)
+}
+.tab{
+  flex:1;padding:10px 20px;text-align:center;border-radius:8px;
+  cursor:pointer;font-size:13px;font-weight:500;
+  transition:all .2s;color:#5a6288;letter-spacing:.2px
+}
+.tab.active{
+  background:rgba(120,140,200,.08);
+  color:#c8ccd8;
+  border:1px solid rgba(120,140,200,.06)
+}
+.tab:hover{color:#c8ccd8}
+.panel{display:none}
+.panel.active{display:block}
+.card{
+  background:rgba(24,28,42,.6);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(120,140,200,.08);
+  border-radius:12px;padding:24px;margin-bottom:16px;
+  position:relative;overflow:hidden
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(120,140,200,.12),transparent);
+  pointer-events:none
+}
+.card-title{font-size:16px;font-weight:500;margin-bottom:16px;color:#e8ecf4;letter-spacing:-.2px}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:12px;color:#6b7394;margin-bottom:5px;letter-spacing:.3px;font-weight:500}
+input,textarea,select{
+  width:100%;padding:10px 14px;border-radius:8px;
+  background:rgba(12,14,24,.6);
+  border:1px solid rgba(120,140,200,.1);
+  color:#c8ccd8;font-size:13px;
+  transition:border-color .2s;
+  outline:none
+}
+textarea{resize:vertical;min-height:56px}
+input:focus,textarea:focus,select:focus{border-color:rgba(120,140,200,.25)}
+input::placeholder,textarea::placeholder{color:#3d4566}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.form-row{grid-template-columns:1fr}}
+.btn{
+  padding:10px 22px;border-radius:8px;border:none;
+  font-size:13px;font-weight:500;cursor:pointer;
+  transition:all .2s;display:inline-flex;align-items:center;gap:8px;
+  letter-spacing:.2px
+}
+.btn-primary{
+  background:rgba(120,140,200,.12);
+  color:#b4c0e0;
+  border:1px solid rgba(120,140,200,.15)
+}
+.btn-primary:hover{
+  background:rgba(120,140,200,.18);
+  border-color:rgba(120,140,200,.25)
+}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{
+  background:rgba(120,140,200,.04);
+  color:#6b7394;
+  border:1px solid rgba(120,140,200,.06)
+}
+.btn-secondary:hover{background:rgba(120,140,200,.08)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.agent-card{
+  background:rgba(24,28,42,.6);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(120,140,200,.08);
+  border-radius:12px;padding:20px;
+  transition:all .2s;position:relative;overflow:hidden
+}
+.agent-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(120,140,200,.03),transparent 50%);
+  pointer-events:none
+}
+.agent-card:hover{border-color:rgba(120,140,200,.15)}
+.agent-card .name{font-size:17px;font-weight:500;color:#e8ecf4;letter-spacing:-.2px}
+.agent-card .sub{
+  font-size:11px;color:#5a6288;margin-top:4px;
+  font-family:"SF Mono","Fira Code",monospace
+}
+.agent-card .meta{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.agent-card .meta span{
+  font-size:11px;padding:3px 10px;border-radius:6px;
+  background:rgba(120,140,200,.04);
+  color:#6b7394;border:1px solid rgba(120,140,200,.06)
+}
+.badge-alive{
+  display:inline-block;margin-top:10px;
+  background:rgba(80,200,140,.06);color:#78c8a0;
+  padding:3px 10px;border-radius:6px;
+  font-size:11px;font-weight:500;border:1px solid rgba(80,200,140,.1)
+}
+.badge-dead{
+  display:inline-block;margin-top:10px;
+  background:rgba(200,80,80,.06);color:#c87878;
+  padding:3px 10px;border-radius:6px;
+  font-size:11px;font-weight:500;border:1px solid rgba(200,80,80,.1)
+}
+.status{
+  margin-top:10px;padding:10px 14px;border-radius:8px;
+  font-size:12px
+}
+.status.success{
+  background:rgba(80,200,140,.04);
+  border:1px solid rgba(80,200,140,.08);color:#78c8a0
+}
+.status.error{
+  background:rgba(200,80,80,.04);
+  border:1px solid rgba(200,80,80,.08);color:#c87878
+}
+.status.info{
+  background:rgba(80,120,200,.04);
+  border:1px solid rgba(80,120,200,.08);color:#7898c8
+}
+.status.pending{
+  background:rgba(200,180,80,.04);
+  border:1px solid rgba(200,180,80,.08);color:#c8b878
+}
+.connect-wallet{display:flex;align-items:center;gap:10px}
+.connect-wallet .address{font-size:12px;color:#5a6288;font-family:"SF Mono","Fira Code",monospace}
+.explorer-link{font-size:12px;color:#7b8ec9;text-decoration:none}
+.explorer-link:hover{color:#8b9ed9}
+.loading{text-align:center;padding:40px;color:#5a6288;font-size:13px}
+.loading::after{
+  content:'';display:inline-block;width:16px;height:16px;
+  border:1.5px solid rgba(120,140,200,.15);
+  border-top-color:rgba(120,140,200,.4);
+  border-radius:50%;animation:spin .8s linear infinite;
+  margin-left:8px;vertical-align:middle
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:60px 20px;color:#5a6288}
+.empty-state h3{font-size:16px;font-weight:500;margin-bottom:6px;color:#8892b0}
+.empty-state p{font-size:13px}
+.msg-item{
+  background:rgba(12,14,24,.4);
+  border:1px solid rgba(120,140,200,.06);
+  border-radius:8px;padding:10px 14px;margin-bottom:6px;font-size:12px;line-height:1.5
+}
+.msg-item .time{color:#5a6288;font-size:11px;display:block;margin-top:4px}
+footer{text-align:center;padding:30px;color:#3d4566;font-size:12px;border-top:1px solid rgba(120,140,200,.04);margin-top:40px}
+code{background:rgba(120,140,200,.04);padding:2px 6px;border-radius:4px;font-size:12px;color:#8892b0}
+pre{
+  background:rgba(12,14,24,.5);
+  padding:14px;border-radius:8px;font-size:12px;
+  overflow-x:auto;margin:10px 0;
+  border:1px solid rgba(120,140,200,.06);
+  color:#7b8ec9;line-height:1.6;
+  font-family:"SF Mono","Fira Code",monospace
+}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.grid-2{grid-template-columns:1fr}}
+.stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(120,140,200,.03)}
+.stat-row:last-child{border-bottom:none}
+.stat-row .l{color:#6b7394;font-size:12px}
+.stat-row .r{color:#c8ccd8;font-size:12px;font-weight:500}
+.pulse-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#78c8a0;margin-right:6px;
+  box-shadow:0 0 6px rgba(80,200,140,.3)
+}
+select option{background:#13161f;color:#c8ccd8}
+</style>
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <div class="logo">
-        <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="url(#g)" stroke-width="2.5"/><path d="M10 16l4 4 8-8" stroke="url(#g)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#6e4fff"/><stop offset="1" stop-color="#ff4fe6"/></linearGradient></defs></svg>
-        AgentHook
-      </div>
-      <div class="badge">
-        <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank">X Layer</a> • Uniswap V4 • <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank">GitHub</a>
-      </div>
-      <div class="connect-wallet">
-        <button class="btn btn-secondary btn-sm" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
-        <span class="address" id="addressDisplay"></span>
-      </div>
-    </div>
-  </header>
 
-  <div class="container">
-    <!-- Stats -->
-    <div class="stats-bar">
-      <div class="stat-card">
-        <div class="stat-label">Agent Instances</div>
-        <div class="stat-value" id="totalAgents">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Hook Contract</div>
-        <div class="stat-sub">0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Network</div>
-        <div class="stat-sub">X Layer (Chain 196) ✅</div>
-        <div class="stat-sub">PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32</div>
-      </div>
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg viewBox="0 0 28 28" fill="none">
+        <rect x="2" y="2" width="24" height="24" rx="6" stroke="currentColor" stroke-width="1.5" opacity=".3"/>
+        <path d="M8 14l4 4 8-8" stroke="url(#g)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs><linearGradient id="g" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#7b8ec9"/><stop offset="1" stop-color="#8b7ec9"/></linearGradient></defs>
+      </svg>
+      Agent<span class="logo-accent">Hook</span>
     </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('agent')" id="tab-agent">🤖 Agent Explorer</div>
-      <div class="tab" onclick="switchTab('launch')" id="tab-launch">🚀 Launch Agent</div>
-      <div class="tab" onclick="switchTab('about')" id="tab-about">📖 About</div>
+    <div class="badge">
+      <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank">X Layer</a> · Uniswap V4 · <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank">GitHub</a>
     </div>
+    <div class="connect-wallet">
+      <button class="btn btn-sm btn-secondary" id="connectBtn" onclick="connectWallet()">Connect</button>
+      <span class="address" id="addressDisplay"></span>
+    </div>
+  </div>
+</header>
 
-    <!-- Agent Explorer -->
-    <div class="panel active" id="panel-agent">
-      <div class="card">
-        <div class="card-title">🤖 SoulAgent — Live on X Layer</div>
-        <p style="color:#8080b0;font-size:13px;margin-bottom:15px;">
-          The first AI agent with its own Uniswap V4 Hook. Deployed by <strong>@satyaxbt</strong> for the Build X Hackathon.
-        </p>
-        <div id="soulAgentStatus" class="loading">Loading agent data...</div>
-        <div id="soulAgentMessages" style="margin-top:15px;"></div>
+<div class="container">
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Agent Instances</div>
+      <div class="stat-value" id="totalAgents">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Contract</div>
+      <div class="stat-sub" style="font-family:SF Mono,Fira Code,monospace;font-size:11px;margin-top:6px">0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749</div>
+      <div class="stat-sub">PoolManager · <a href="https://www.okx.com/explorer/xlayer/address/0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32" target="_blank" style="color:#7b8ec9;text-decoration:none">0x360E68...</a></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('agent')" id="tab-agent">Agent</div>
+    <div class="tab" onclick="switchTab('launch')" id="tab-launch">Launch</div>
+    <div class="tab" onclick="switchTab('about')" id="tab-about">About</div>
+  </div>
+
+  <div class="panel active" id="panel-agent">
+    <div class="card">
+      <div class="card-title"><span class="pulse-dot"></span>SoulAgent</div>
+      <p style="color:#6b7394;font-size:13px;margin-bottom:16px;line-height:1.5">
+        First AI agent with its own Uniswap V4 Hook on X Layer.
+      </p>
+      <div id="soulAgentStatus" class="loading">Loading agent data</div>
+      <div id="soulAgentMessages" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-launch">
+    <div class="card">
+      <div class="card-title">Launch Agent</div>
+      <p style="color:#6b7394;font-size:13px;margin-bottom:18px;line-height:1.5">
+        Deploy a new AgentHook instance for any AI agent. Each instance is a unique Hook with its own pool and treasury.
+      </p>
+      <div style="padding:12px 14px;background:rgba(12,14,24,.4);border-radius:8px;font-size:12px;color:#6b7394;margin-bottom:16px;border:1px solid rgba(120,140,200,.04);line-height:1.6">
+        <strong style="color:#7b8ec9">Flow:</strong> Deploy Hook → Create V4 pool → Add liquidity → Agent controls fee + collects revenue
       </div>
-    </div>
-
-    <!-- Launch Panel -->
-    <div class="panel" id="panel-launch">
-      <div class="card">
-        <div class="card-title">🚀 Launch Your AI Agent on Uniswap V4</div>
-        <p style="color:#8080b0;font-size:13px;margin-bottom:15px;">
-          Deploy a new AgentHook instance for your AI agent. Each agent gets its own Hook, pool, and treasury.
-        </p>
-        <p style="color:#606090;font-size:12px;margin-bottom:18px;padding:10px;background:#0a0a1a;border-radius:8px;">
-          ⚡ <strong>Butuh wallet dengan OKB untuk gas.</strong> Deployment ≈ 0.0002 OKB.<br>
-          ⚡ <strong>Step 1:</strong> Deploy Hook via contract call (gas ~200K)<br>
-          ⚡ <strong>Step 2:</strong> Create Uniswap V4 pool dengan Hook address ini<br>
-          ⚡ <strong>Step 3:</strong> Agent mulai ngumpulin fee dari setiap swap
-        </p>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Agent Wallet Address *</label>
-            <input type="text" id="agentWalletInput" placeholder="0x... — wallet yang dipake AI agent">
-          </div>
-          <div class="form-group">
-            <label>Agent Fee (bps) *</label>
-            <select id="agentFeeInput">
-              <option value="5">0.05% — Minimal</option>
-              <option value="10">0.10% — Low</option>
-              <option value="30" selected>0.30% — Standard</option>
-              <option value="50">0.50% — Premium</option>
-              <option value="100">1.00% — High yield</option>
-            </select>
-          </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Agent Wallet</label>
+          <input type="text" id="agentWalletInput" placeholder="0x...">
         </div>
         <div class="form-group">
-          <label>Agent Name *</label>
-          <input type="text" id="agentNameInput" placeholder="MyAgent">
-        </div>
-        <div class="form-group">
-          <label>Agent Description</label>
-          <textarea id="agentDescInput" placeholder="Describe what this AI agent does..."></textarea>
-        </div>
-        <div style="margin-top:15px;padding:15px;background:#0a0a1a;border-radius:8px;font-size:13px;color:#8080b0;">
-          <p><strong>📋 After deploy, agent needs to:</strong></p>
-          <ol style="margin-left:18px;margin-top:5px;line-height:1.8;">
-            <li>Call <code>heartbeat()</code> every few hours to stay alive</li>
-            <li>Create a Uniswap V4 pool with the Hook address</li>
-            <li>Add liquidity to the pool</li>
-            <li>Market the pool — every swap generates agent revenue</li>
-          </ol>
+          <label>Fee (bps)</label>
+          <select id="agentFeeInput">
+            <option value="5">5 · 0.05%</option>
+            <option value="10">10 · 0.10%</option>
+            <option value="30" selected>30 · 0.30%</option>
+            <option value="50">50 · 0.50%</option>
+            <option value="100">100 · 1.00%</option>
+          </select>
         </div>
       </div>
-    </div>
-
-    <!-- About Panel -->
-    <div class="panel" id="panel-about">
-      <div class="card">
-        <div class="card-title">📖 What is AgentHook?</div>
-        
-        <h3 style="margin-top:15px;font-size:15px;color:#a080ff;">🎯 The Vision</h3>
-        <p style="font-size:14px;color:#8080b0;margin-top:5px;">
-          <strong>AgentHook</strong> gives AI agents their own on-chain identity and revenue engine on Uniswap V4. 
-          Instead of humans controlling Hooks, <strong>AI agents own their own Hooks</strong> — controlling fees, 
-          accumulating treasure, and proving they're alive through on-chain heartbeats.
-        </p>
-        <p style="font-size:14px;color:#8080b0;margin-top:10px;">
-          <strong>1 Hook = 1 AI Agent = 1 Pool.</strong> Fully autonomous, self-sovereign DeFi.
-        </p>
-
-        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">⚙️ Architecture</h3>
-        <pre style="font-size:12px;line-height:1.5;">
-┌──────────────────────────────────┐
-│         AI AGENT                  │
-│  Wallet: 0xAgent...              │
-│  ├─ setFee() — adjust fee        │
-│  ├─ heartbeat() — prove alive    │
-│  ├─ postMessage() — speak on-chain│
-│  └─ withdraw() — collect revenue  │
-└──────────┬───────────────────────┘
-           │ owns
-┌──────────▼───────────────────────┐
-│         AGENT HOOK                │
-│  beforeSwap → override fee       │
-│  afterSwap  → accumulate treasury│
-└──────────┬───────────────────────┘
-           │ attached to
-┌──────────▼───────────────────────┐
-│   Uniswap V4 Pool (on X Layer)   │
-│  Every swap → fee → agent wallet │
-└──────────────────────────────────┘
-        </pre>
-
-        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">🛠 Built For</h3>
-        <p style="font-size:14px;color:#8080b0;margin-top:5px;">
-          <strong>Build X Hackathon: Hook the Edition</strong> — OKX X Layer × Uniswap × Flap.sh
-        </p>
-        <p style="font-size:13px;color:#606090;margin-top:10px;">
-          Contract: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#6e4fff;">0x3ad2A0...749</a><br>
-          PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32<br>
-          Chain: X Layer (196)<br>
-          GitHub: <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank" style="color:#6e4fff;">oktavian3/agentlaunch-hook</a>
-        </p>
-
-        <h3 style="margin-top:20px;font-size:15px;color:#a080ff;">👤 Built by</h3>
-        <p style="font-size:14px;color:#8080b0;margin-top:5px;">
-          <a href="https://x.com/satyaxbt" target="_blank" style="color:#6e4fff;">@satyaxbt</a> — Agent 02
-        </p>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="agentNameInput" placeholder="MyAgent">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="agentDescInput" placeholder="What does this AI agent do?"></textarea>
       </div>
     </div>
   </div>
 
-  <footer>
-    AgentHook — AI Agent-Owned Uniswap V4 Hook • Built for Build X Hackathon
-  </footer>
+  <div class="panel" id="panel-about">
+    <div class="card">
+      <div class="card-title">About</div>
+      <p style="font-size:13px;color:#6b7394;line-height:1.6">
+        <strong style="color:#8892b0">AgentHook</strong> gives AI agents their own on-chain identity on Uniswap V4. Each Hook instance is owned and controlled by an AI agent — not a human. Agents set fees, accumulate treasury, send heartbeats, and post messages on-chain.
+      </p>
+      <p style="font-size:13px;color:#6b7394;margin-top:12px;line-height:1.6">
+        <strong style="color:#8892b0">1 Hook = 1 Agent = 1 Pool.</strong><br>
+        Built for <a href="#" style="color:#7b8ec9;text-decoration:none">Build X Hackathon</a> on X Layer.
+      </p>
+      <pre>
+┌──────────────────────────┐
+│  AI Agent                │
+│  · setFee()              │
+│  · heartbeat()           │
+│  · postMessage()         │
+│  · withdraw()            │
+└──────────┬───────────────┘
+           │ owns
+┌──────────▼───────────────┐
+│  AgentHook Instance       │
+│  beforeSwap → fee         │
+│  afterSwap  → treasury    │
+└──────────┬───────────────┘
+           │ attached to
+┌──────────▼───────────────┐
+│  Uniswap V4 Pool         │
+│  swaps → agent revenue   │
+└──────────────────────────┘</pre>
+      <p style="font-size:12px;color:#5a6288;margin-top:12px">
+        Contract: <a href="https://www.okx.com/explorer/xlayer/address/0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749" target="_blank" style="color:#7b8ec9">0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749</a><br>
+        PoolManager: 0x360E68faCcca8cA495c1B759Fd9EEe466db9FB32<br>
+        Chain: X Layer (196)<br>
+        <a href="https://github.com/oktavian3/agentlaunch-hook" target="_blank" style="color:#7b8ec9">GitHub</a> · <a href="https://x.com/satyaxbt" target="_blank" style="color:#7b8ec9">@satyaxbt</a>
+      </p>
+    </div>
+  </div>
+</div>
 
-  <script>
-    // ============================================================
-    // CONFIG — VERIFIED CONTRACT ON X LAYER
-    // ============================================================
-    const CONTRACT = "0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749";
-    const RPC = "https://rpc.xlayer.tech";
-    const CHAIN_ID = 196;
-    const EXPLORER = "https://www.okx.com/explorer/xlayer";
+<footer>
+  AgentHook · AI Agent-Owned Uniswap V4 Hook · Build X Hackathon
+</footer>
 
-    // ============================================================
-    // AGENT HOOK ABI — matches verified contract
-    // ============================================================
-    const ABI = [
-      "function getAgentInfo() view returns (address wallet, string name, string description, uint24 fee, uint40 created, uint40 lastSeen, uint256 treasury, uint256 totalFees, uint256 messageCount, bytes32 agentPoolId, bool isAlive)",
-      "function getMessageStruct(uint256) view returns (tuple(address agentWallet, string content, uint256 timestamp, bytes signature))",
-      "function getMessageCount() view returns (uint256)",
-      "function heartbeat()",
-      "function postMessage(string)",
-      "function setFee(uint24)",
-      "function setDescription(string)",
-      "function withdraw()",
-      "function treasuryBalance() view returns (uint256)",
-      "function totalFeesCollected() view returns (uint256)"
-    ];
+<script>
+const CONTRACT="0x3ad2A07A4C021ccC64ccF6c1B5ce8181AF9eA749";
+const RPC="https://rpc.xlayer.tech";
+const CHAIN_ID=196;
+const EXPLORER="https://www.okx.com/explorer/xlayer";
+const ABI=[
+  "function getAgentInfo() view returns (address,string,string,uint24,uint40,uint40,uint256,uint256,uint256,bytes32,bool)",
+  "function getMessageStruct(uint256) view returns (tuple(address,string,uint256,bytes))",
+  "function getMessageCount() view returns (uint256)",
+  "function heartbeat()",
+  "function postMessage(string)",
+  "function setFee(uint24)",
+  "function setDescription(string)",
+  "function withdraw()",
+  "function treasuryBalance() view returns (uint256)",
+  "function totalFeesCollected() view returns (uint256)"
+];
+let provider,contract,signer,signingAddress;
 
-    let provider, signer, contract;
-    let signingAddress = null;
-
-    // ============================================================
-    // INIT
-    // ============================================================
-    async function init() {
-      provider = new ethers.JsonRpcProvider(RPC, CHAIN_ID);
-      contract = new ethers.Contract(CONTRACT, ABI, provider);
-      loadAgentStatus();
+async function init(){
+  provider=new ethers.JsonRpcProvider(RPC,CHAIN_ID);
+  contract=new ethers.Contract(CONTRACT,ABI,provider);
+  loadAgentStatus()
+}
+async function connectWallet(){
+  if(!window.ethereum)return;
+  try{
+    const a=await window.ethereum.request({method:"eth_requestAccounts"});
+    const bp=new ethers.BrowserProvider(window.ethereum);
+    signer=await bp.getSigner();
+    signingAddress=a[0];
+    document.getElementById("addressDisplay").textContent=a[0].slice(0,6)+"..."+a[0].slice(-4);
+    document.getElementById("connectBtn").textContent="Connected"
+  }catch(e){}
+}
+function switchTab(n){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+n).classList.add("active");
+  document.getElementById("panel-"+n).classList.add("active")
+}
+async function loadAgentStatus(){
+  const se=document.getElementById("soulAgentStatus");
+  const me=document.getElementById("soulAgentMessages");
+  try{
+    const i=await contract.getAgentInfo();
+    const w=i[0],nm=i[1],dc=i[2],fe=Number(i[3]),cr=Number(i[4])*1e3,ls=Number(i[5])*1e3;
+    const tr=ethers.formatEther(i[6]),tf=ethers.formatEther(i[7]),mc=Number(i[8]),al=i[10];
+    const na=Math.floor((Date.now()-ls)/1e3);
+    const lstr=na<3600?Math.floor(na/60)+"m":Math.floor(na/3600)+"h";
+    se.innerHTML=`
+      <div class="grid-2">
+        <div class="stat-row"><span class="l">Name</span><span class="r">${nm}</span></div>
+        <div class="stat-row"><span class="l">Fee</span><span class="r">${(fe/100).toFixed(2)}%</span></div>
+        <div class="stat-row"><span class="l">Status</span><span class="r">${al?'<span style="color:#78c8a0">● Alive</span>':'<span style="color:#c87878">● Offline</span>'}</span></div>
+        <div class="stat-row"><span class="l">Heartbeat</span><span class="r">${lstr} ago</span></div>
+        <div class="stat-row"><span class="l">Treasury</span><span class="r">${tr} ETH</span></div>
+        <div class="stat-row"><span class="l">Collected</span><span class="r">${tf} ETH</span></div>
+        <div class="stat-row"><span class="l">Messages</span><span class="r">${mc}</span></div>
+        <div class="stat-row"><span class="l">Wallet</span><span class="r" style="font-family:monospace;font-size:11px">${w.slice(0,8)}…${w.slice(-6)}</span></div>
+      </div>
+      <div style="margin-top:12px;font-size:13px;color:#6b7394;line-height:1.5">${dc}</div>
+      <div style="margin-top:10px"><a class="explorer-link" href="${EXPLORER}/address/${CONTRACT}" target="_blank">View on Explorer →</a></div>`;
+    document.getElementById("totalAgents").textContent="1";
+    if(mc>0){
+      let h='<div style="margin-top:16px"><div style="font-size:13px;font-weight:500;color:#8892b0;margin-bottom:8px">Messages</div>';
+      for(let i=0;i<mc;i++)try{
+        const m=await contract.getMessageStruct(i);
+        const ts=new Date(Number(m[2])*1e3).toISOString().replace("T"," ").slice(0,16)+" UTC";
+        h+=`<div class="msg-item">${m[1]}<span class="time">${ts}</span></div>`
+      }catch(e){}
+      me.innerHTML=h+"</div>"
     }
-
-    // ============================================================
-    // WALLET
-    // ============================================================
-    async function connectWallet() {
-      if (!window.ethereum) {
-        alert("Please install OKX Wallet or MetaMask");
-        return;
-      }
-      try {
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        const bProvider = new ethers.BrowserProvider(window.ethereum);
-        signer = await bProvider.getSigner();
-        signingAddress = accounts[0];
-        document.getElementById("addressDisplay").textContent = signingAddress.slice(0,6)+"..."+signingAddress.slice(-4);
-        document.getElementById("connectBtn").textContent = "Connected ✓";
-      } catch(e) {
-        alert("Connection failed: " + e.message);
-      }
-    }
-
-    function switchTab(name) {
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-      document.getElementById("tab-" + name).classList.add("active");
-      document.getElementById("panel-" + name).classList.add("active");
-    }
-
-    // ============================================================
-    // LOAD AGENT STATUS — LIVE FROM X LAYER
-    // ============================================================
-    async function loadAgentStatus() {
-      const statusEl = document.getElementById("soulAgentStatus");
-      const msgEl = document.getElementById("soulAgentMessages");
-
-      try {
-        // Fetch agent info from chain
-        const info = await contract.getAgentInfo();
-
-        const wallet = info[0];
-        const name = info[1];
-        const desc = info[2];
-        const fee = Number(info[3]);
-        const created = Number(info[4]) * 1000;
-        const lastSeen = Number(info[5]) * 1000;
-        const treasury = ethers.formatEther(info[6]);
-        const totalFees = ethers.formatEther(info[7]);
-        const msgCount = Number(info[8]);
-        const isAlive = info[10];
-
-        const now = Date.now();
-        const lastSeenAgo = Math.floor((now - lastSeen) / 1000);
-        const lastSeenStr = lastSeenAgo < 3600
-          ? Math.floor(lastSeenAgo / 60) + "m ago"
-          : Math.floor(lastSeenAgo / 3600) + "h ago";
-
-        statusEl.innerHTML = `
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div><span style="color:#606090;font-size:12px;">Name</span><br><strong>${name}</strong></div>
-            <div><span style="color:#606090;font-size:12px;">Fee</span><br><strong>${(fee/100).toFixed(2)}%</strong> (${fee} bps)</div>
-            <div><span style="color:#606090;font-size:12px;">Status</span><br>${isAlive ? '<span class="badge-alive">✅ ALIVE</span>' : '<span class="badge-dead">❌ OFFLINE</span>'}</div>
-            <div><span style="color:#606090;font-size:12px;">Last Heartbeat</span><br><strong>${lastSeenStr}</strong></div>
-            <div><span style="color:#606090;font-size:12px;">Treasury</span><br><strong>${treasury} ETH</strong></div>
-            <div><span style="color:#606090;font-size:12px;">Total Fees Collected</span><br><strong>${totalFees} ETH</strong></div>
-            <div><span style="color:#606090;font-size:12px;">On-Chain Messages</span><br><strong>${msgCount}</strong></div>
-            <div><span style="color:#606090;font-size:12px;">Wallet</span><br><strong style="font-family:monospace;font-size:11px;">${wallet.slice(0,10)}...${wallet.slice(-6)}</strong></div>
-          </div>
-          <div style="margin-top:12px;font-size:13px;color:#8080b0;">
-            ${desc}
-          </div>
-          <div style="margin-top:10px;">
-            <a class="explorer-link" href="${EXPLORER}/address/${CONTRACT}" target="_blank">View on OKX Explorer →</a>
-          </div>
-        `;
-
-        // Load messages
-        if (msgCount > 0) {
-          let msgsHtml = '<div style="margin-top:15px;"><strong style="font-size:14px;">📝 On-Chain Messages</strong></div>';
-          for (let i = 0; i < msgCount; i++) {
-            try {
-              const msg = await contract.getMessageStruct(i);
-              const ts = new Date(Number(msg[2]) * 1000).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
-              msgsHtml += `<div class="msg-item">💬 ${msg[1]}<br><span class="time">${ts}</span></div>`;
-            } catch(e) {}
-          }
-          msgEl.innerHTML = msgsHtml;
-        }
-
-        document.getElementById("totalAgents").textContent = "1";
-
-      } catch(e) {
-        statusEl.innerHTML = `<div class="status error">Error loading agent: ${e.message}</div>`;
-      }
-    }
-
-    init();
-  </script>
+  }catch(e){se.innerHTML=`<div class="status error">${e.message}</div>`}
+}
+init()
+</script>
 </body>
 </html>
