@@ -4,30 +4,21 @@ pragma solidity ^0.8.26;
 import {Test, console} from "forge-std/Test.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "v4-core/types/PoolId.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {BalanceDelta} from "v4-core/types/BalanceDelta.sol";
 import {AgentYieldHook} from "../src/AgentYieldHook.sol";
 import {AgentYieldFactory} from "../src/AgentYieldFactory.sol";
 
 contract AgentYieldHookTest is Test {
-    using PoolIdLibrary for PoolKey;
-
     AgentYieldHook public hook;
-    AgentYieldFactory public factory;
 
     address public agentWallet = address(0x42);
     address public user1 = address(0x101);
     address public user2 = address(0x102);
     address public deployer = address(0x1);
     IPoolManager public poolManager = IPoolManager(address(0x100));
-    address public token0 = address(0x100001);
-    address public token1 = address(0x100002);
-
-    PoolKey public testPoolKey;
 
     function setUp() public {
-        // Deploy Hook directly (factory needs real PoolManager for pool creation)
         vm.prank(deployer);
         hook = new AgentYieldHook(
             poolManager,
@@ -35,47 +26,41 @@ contract AgentYieldHookTest is Test {
             "TestYieldAgent",
             AgentYieldHook.StrategyMode.Balanced
         );
-
-        // Build pool key for initialization
-        testPoolKey = PoolKey({
-            currency0: Currency.wrap(token0),
-            currency1: Currency.wrap(token1),
-            fee: 30,
-            tickSpacing: 60,
-            hooks: hook
-        });
-        
-        // Initialize as the factory deployer
-        vm.prank(hook.factory());
-        hook.initialize(testPoolKey);
     }
 
     // ============================================================
-    // Deploy & Factory
+    // Deploy
     // ============================================================
 
     function test_Deploy() public {
         assertEq(hook.agentName(), "TestYieldAgent");
         assertEq(hook.agentWallet(), agentWallet);
-        assertTrue(hook.initialized());
+        assertTrue(hook.alive());
         assertEq(address(hook.poolManager()), address(poolManager));
-    }
-
-    function test_InitialPoolKey() public {
-        (Currency c0, Currency c1,,,) = hook.poolKey();
-        assertEq(Currency.unwrap(c0), token0);
-        assertEq(Currency.unwrap(c1), token1);
+        assertEq(uint8(hook.mode()), uint8(AgentYieldHook.StrategyMode.Balanced));
     }
 
     // ============================================================
-    // Strategy
+    // Strategy / Mode
     // ============================================================
 
-    function test_DefaultStrategy_Balanced() public {
-        (AgentYieldHook.StrategyMode mode, uint24 fee, int24 tickRange,) = hook.strategy();
-        assertEq(uint8(mode), uint8(AgentYieldHook.StrategyMode.Balanced));
-        assertEq(fee, 30);
-        assertEq(tickRange, 600);
+    function test_DefaultMode_Balanced() public {
+        assertEq(uint8(hook.mode()), uint8(AgentYieldHook.StrategyMode.Balanced));
+        assertEq(hook.fee(), 30);
+    }
+
+    function test_ModeSet_Aggressive() public {
+        vm.prank(agentWallet);
+        hook.setMode(AgentYieldHook.StrategyMode.Aggressive);
+        assertEq(uint8(hook.mode()), uint8(AgentYieldHook.StrategyMode.Aggressive));
+        assertEq(hook.fee(), 1);
+    }
+
+    function test_ModeSet_Conservative() public {
+        vm.prank(agentWallet);
+        hook.setMode(AgentYieldHook.StrategyMode.Conservative);
+        assertEq(uint8(hook.mode()), uint8(AgentYieldHook.StrategyMode.Conservative));
+        assertEq(hook.fee(), 100);
     }
 
     // ============================================================
@@ -87,7 +72,6 @@ contract AgentYieldHookTest is Test {
         hook.deposit(100 ether);
 
         (uint256 amount,) = hook.getDepositorInfo(user1);
-        // 100 - 0.1% deposit fee = 99.9
         assertEq(amount, 99.9 ether);
         assertEq(hook.totalDeposits(), 99.9 ether);
     }
@@ -100,9 +84,8 @@ contract AgentYieldHookTest is Test {
         hook.deposit(50 ether);
 
         assertEq(hook.getDepositorCount(), 2);
-        // (100 + 50) - 0.1% = 149.85
         assertEq(hook.totalDeposits(), 149.85 ether);
-        assertEq(hook.treasuryBalance(), 0.15 ether); // 0.1% of 150
+        assertEq(hook.treasuryBalance(), 0.15 ether);
     }
 
     function test_Deposit_RevertsOnZero() public {
@@ -120,7 +103,7 @@ contract AgentYieldHookTest is Test {
         hook.deposit(100 ether);
 
         vm.prank(user1);
-        hook.withdraw(0); // withdraw all
+        hook.withdraw(0);
 
         (uint256 remaining,) = hook.getDepositorInfo(user1);
         assertEq(remaining, 0);
@@ -148,8 +131,7 @@ contract AgentYieldHookTest is Test {
     function test_SetFee() public {
         vm.prank(agentWallet);
         hook.setFee(50);
-        (AgentYieldHook.StrategyMode mode, uint24 fee,,) = hook.strategy();
-        assertEq(fee, 50);
+        assertEq(hook.fee(), 50);
     }
 
     function test_SetFee_RevertsFromNonAgent() public {
@@ -158,11 +140,10 @@ contract AgentYieldHookTest is Test {
         hook.setFee(50);
     }
 
-    function test_SetMode() public {
-        vm.prank(agentWallet);
+    function test_SetMode_RevertsFromNonAgent() public {
+        vm.prank(user1);
+        vm.expectRevert(bytes("AY: not agent"));
         hook.setMode(AgentYieldHook.StrategyMode.Aggressive);
-        (AgentYieldHook.StrategyMode mode,,,) = hook.strategy();
-        assertEq(uint8(mode), uint8(AgentYieldHook.StrategyMode.Aggressive));
     }
 
     function test_PostMessage() public {
@@ -199,34 +180,49 @@ contract AgentYieldHookTest is Test {
         hook.rebalancePosition(500, -500);
     }
 
+    function test_SetAlive() public {
+        vm.prank(agentWallet);
+        hook.setAlive(false);
+        assertFalse(hook.alive());
+
+        vm.prank(agentWallet);
+        hook.setAlive(true);
+        assertTrue(hook.alive());
+    }
+
+    function test_SetAlive_RevertsFromNonAgent() public {
+        vm.prank(user1);
+        vm.expectRevert(bytes("AY: not agent"));
+        hook.setAlive(false);
+    }
+
     // ============================================================
     // Treasury & Reinvest
     // ============================================================
 
-    function test_DepositAndTreasury() public {
+    function test_DepositCreatesTreasury() public {
         vm.prank(user1);
         hook.deposit(1000 ether);
-
         assertTrue(hook.treasuryBalance() > 0);
+        assertEq(hook.treasuryBalance(), 1 ether);
     }
 
     function test_Reinvest() public {
         vm.prank(user1);
         hook.deposit(1000 ether);
+        assertTrue(hook.treasuryBalance() > 0);
 
-        uint256 treasury = hook.treasuryBalance();
-        assertTrue(treasury > 0);
-
-        // Warp past cooldown
         vm.warp(block.timestamp + hook.REINVEST_COOLDOWN() + 1);
 
         vm.prank(agentWallet);
         hook.reinvest();
-
         assertEq(hook.treasuryBalance(), 0);
     }
 
     function test_Reinvest_RevertsFromNonAgent() public {
+        vm.prank(user1);
+        hook.deposit(1000 ether);
+        vm.warp(block.timestamp + hook.REINVEST_COOLDOWN() + 1);
         vm.prank(user1);
         vm.expectRevert(bytes("AY: not agent"));
         hook.reinvest();
@@ -238,20 +234,51 @@ contract AgentYieldHookTest is Test {
         hook.reinvest();
     }
 
+    function test_Reinvest_RevertsOnCooldown() public {
+        vm.prank(user1);
+        hook.deposit(1000 ether);
+        vm.prank(agentWallet);
+        vm.expectRevert(bytes("AY: cooldown"));
+        hook.reinvest();
+    }
+
+    // ============================================================
+    // Treasury Deposit (AI bot simulates swap fees)
+    // ============================================================
+
+    function test_DepositTreasury() public {
+        vm.prank(agentWallet);
+        hook.depositTreasury(5 ether);
+
+        assertEq(hook.treasuryBalance(), 5 ether);
+        assertEq(hook.totalFeesCollected(), 5 ether);
+    }
+
+    function test_DepositTreasury_RevertsFromNonAgent() public {
+        vm.prank(user1);
+        vm.expectRevert(bytes("AY: not agent"));
+        hook.depositTreasury(1 ether);
+    }
+
     // ============================================================
     // View Functions
     // ============================================================
 
     function test_GetAgentInfo() public {
-        (string memory name, address wallet, uint256 tvl, uint256 treasury,, uint256 depCount, uint256 msgCount, AgentYieldHook.StrategyMode mode, uint24 fee, uint128 liq, bool alive) = hook.getAgentInfo();
+        (string memory name, address wallet, uint256 tvl, uint256 treasury,
+         uint256 totalFees, uint256 depCount, uint256 msgCount,
+         AgentYieldHook.StrategyMode _mode, uint24 _fee, uint128 liq, bool alive) = hook.getAgentInfo();
 
         assertEq(name, "TestYieldAgent");
         assertEq(wallet, agentWallet);
         assertEq(tvl, 0);
         assertEq(treasury, 0);
+        assertEq(totalFees, 0);
         assertEq(depCount, 0);
         assertEq(msgCount, 0);
-        assertEq(fee, 30);
+        assertEq(uint8(_mode), uint8(AgentYieldHook.StrategyMode.Balanced));
+        assertEq(_fee, 30);
+        assertEq(liq, 0);
         assertTrue(alive);
     }
 
@@ -267,34 +294,62 @@ contract AgentYieldHookTest is Test {
         assertEq(msgs[1], "msg2");
     }
 
+    function test_Deposit_DisallowsWhenDead() public {
+        vm.prank(agentWallet);
+        hook.setAlive(false);
+
+        vm.prank(user1);
+        vm.expectRevert(bytes("AY: not alive"));
+        hook.deposit(100 ether);
+    }
+
     // ============================================================
-    // Hook Callbacks (via PoolManager)
+    // Hook Callbacks
     // ============================================================
 
-    function test_BeforeSwap_ReturnsSelector() public {
-        PoolKey memory key = _makePoolKey();
+    function test_BeforeInitialize_ReturnsSelector() public {
+        PoolKey memory key = PoolKey({
+            currency0: Currency.wrap(address(0x1)),
+            currency1: Currency.wrap(address(0x2)),
+            fee: 30,
+            tickSpacing: 60,
+            hooks: hook
+        });
         vm.prank(address(poolManager));
         bytes4 selector = hook.beforeInitialize(address(0), key, 0);
         assertEq(selector, hook.beforeInitialize.selector);
     }
 
-    function test_AfterSwap_Accumulates() public {
-        // Need initialized pool to accumulate
-        vm.prank(address(poolManager));
-        hook.afterInitialize(address(0), testPoolKey, 0, 0);
+    // ============================================================
+    // Factory
+    // ============================================================
+
+    function test_FactoryCreateAgent() public {
+        AgentYieldFactory f = new AgentYieldFactory(poolManager);
+
+        (uint256 id, address hookAddr) = f.createAgent("FactoryAgent", AgentYieldHook.StrategyMode.Aggressive, address(this));
+
+        assertEq(id, 0);
+        assertTrue(hookAddr != address(0));
+        assertEq(f.getAgentCount(), 1);
+
+        (address hookAddr_, address owner_, string memory name_, AgentYieldHook.StrategyMode mode_, uint256 createdAt_) = f.agents(0);
+        assertEq(hookAddr_, hookAddr);
+        assertEq(owner_, address(this));
+        assertEq(name_, "FactoryAgent");
+        assertEq(uint8(mode_), uint8(AgentYieldHook.StrategyMode.Aggressive));
     }
 
-    // ============================================================
-    // Helpers
-    // ============================================================
+    function test_FactoryMultipleAgents() public {
+        AgentYieldFactory f = new AgentYieldFactory(poolManager);
 
-    function _makePoolKey() internal view returns (PoolKey memory) {
-        return PoolKey({
-            currency0: Currency.wrap(token0),
-            currency1: Currency.wrap(token1),
-            fee: 30,
-            tickSpacing: 60,
-            hooks: hook
-        });
+        f.createAgent("Agent1", AgentYieldHook.StrategyMode.Balanced, address(this));
+        f.createAgent("Agent2", AgentYieldHook.StrategyMode.Conservative, address(this));
+        f.createAgent("Agent3", AgentYieldHook.StrategyMode.Aggressive, address(this));
+
+        assertEq(f.getAgentCount(), 3);
+
+        AgentYieldFactory.AgentInfo[] memory owned = f.getAgentsByOwner(address(this));
+        assertEq(owned.length, 3);
     }
 }

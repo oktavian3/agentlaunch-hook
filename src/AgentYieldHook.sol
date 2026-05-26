@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "v4-core/types/PoolId.sol";
 import {BalanceDelta} from "v4-core/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/types/BeforeSwapDelta.sol";
 import {IHooks} from "v4-core/interfaces/IHooks.sol";
@@ -13,11 +12,10 @@ import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 
 /// @title AgentYieldHook — AI-Managed Yield Engine on Uniswap V4
-/// @notice Each instance is an AI agent's on-chain yield vault.
-///         Users deposit LP tokens → Hook stakes into V4 pool →
-///         AI bot reinvests treasury fees → auto-compound yield.
+/// @notice Each instance is an AI agent's on-chain yield vault on X Layer.
+///         Users deposit ETH → AI agent manages LP positions → auto-compound yield.
+///         Designed for hackathon demo — yield is simulated via AI bot actions.
 contract AgentYieldHook is IHooks {
-    using PoolIdLibrary for PoolKey;
     using LPFeeLibrary for uint24;
     using StateLibrary for IPoolManager;
 
@@ -25,21 +23,12 @@ contract AgentYieldHook is IHooks {
     // Types
     // ============================================================
 
-    /// @notice User deposit share
     struct VaultShare {
         uint256 amount;
         uint256 depositedAt;
     }
 
-    /// @notice Strategy configuration
     enum StrategyMode { Aggressive, Balanced, Conservative }
-
-    struct StrategyConfig {
-        StrategyMode mode;
-        uint24 fee;
-        int24 tickRange;
-        string description;
-    }
 
     // ============================================================
     // State
@@ -50,20 +39,18 @@ contract AgentYieldHook is IHooks {
 
     string public agentName;
     address public agentWallet;
-    bool public initialized;
+    bool public alive;
 
     uint256 public totalDeposits;
     uint256 public treasuryBalance;
     uint256 public totalFeesCollected;
     uint256 public lastReinvestTime;
 
-    PoolKey public poolKey;
-    bytes32 public poolId;
-
-    StrategyConfig public strategy;
+    StrategyMode public mode;
+    uint24 public fee;
+    uint128 public currentLiquidity;
     int24 public currentTickLower;
     int24 public currentTickUpper;
-    uint128 public currentLiquidity;
 
     mapping(address => VaultShare) public depositors;
     address[] public depositorList;
@@ -73,22 +60,12 @@ contract AgentYieldHook is IHooks {
     // Constants
     // ============================================================
 
-    uint24 public constant MAX_FEE = 1000;
-    uint24 public constant MIN_FEE = 1;
+    uint24 public constant MAX_FEE = 1000;      // 10%
+    uint24 public constant MIN_FEE = 1;          // 0.01%
     uint24 public constant FEE_DENOM = 10000;
-    uint32 public constant REINVEST_COOLDOWN = 3600;
-    uint256 public constant DEPOSIT_FEE_BPS = 10;
-    uint256 public constant PERFORMANCE_FEE_BPS = 1000;
-
-    function getStrategyConfig(StrategyMode mode) internal pure returns (StrategyConfig memory) {
-        if (mode == StrategyMode.Aggressive) {
-            return StrategyConfig(mode, 1, 100, "Aggressive - narrow range, max yield");
-        } else if (mode == StrategyMode.Balanced) {
-            return StrategyConfig(mode, 30, 600, "Balanced - medium range, stable");
-        } else {
-            return StrategyConfig(mode, 100, 2000, "Conservative - wide range, capital protection");
-        }
-    }
+    uint32 public constant REINVEST_COOLDOWN = 3600; // 1 hour
+    uint256 public constant DEPOSIT_FEE_BPS = 10;     // 0.1%
+    uint256 public constant PERFORMANCE_FEE_BPS = 1000; // 10%
 
     // ============================================================
     // Events
@@ -96,11 +73,12 @@ contract AgentYieldHook is IHooks {
 
     event Deposited(address indexed user, uint256 amount, uint256 totalDeposits);
     event Withdrawn(address indexed user, uint256 amount, uint256 yieldEarned);
-    event TreasuryAccumulated(uint256 amount, uint256 total);
     event Reinvested(uint256 amount, uint128 newLiquidity, uint256 timestamp);
     event FeeUpdated(uint24 oldFee, uint24 newFee);
     event ModeChanged(StrategyMode oldMode, StrategyMode newMode);
     event AgentMessagePosted(string content, uint256 timestamp);
+    event AliveSet(bool status, uint256 timestamp);
+    event TreasuryDeposited(uint256 amount);
 
     // ============================================================
     // Modifiers
@@ -121,11 +99,6 @@ contract AgentYieldHook is IHooks {
         _;
     }
 
-    modifier whenInitialized() {
-        require(initialized, "AY: not init");
-        _;
-    }
-
     // ============================================================
     // Constructor
     // ============================================================
@@ -143,20 +116,10 @@ contract AgentYieldHook is IHooks {
         factory = msg.sender;
         agentWallet = _agentWallet;
         agentName = _name;
-        strategy = getStrategyConfig(_mode);
-    }
-
-    // ============================================================
-    // Factory-only
-    // ============================================================
-
-    function initialize(PoolKey calldata _key) external onlyFactory {
-        require(!initialized, "AY: already init");
-        initialized = true;
-        poolKey = _key;
-        poolId = PoolId.unwrap(_key.toId());
-        currentTickLower = -strategy.tickRange;
-        currentTickUpper = strategy.tickRange;
+        mode = _mode;
+        alive = true;
+        _setFeeForMode(_mode);
+        _setRangeForMode(_mode);
     }
 
     // ============================================================
@@ -165,7 +128,7 @@ contract AgentYieldHook is IHooks {
 
     function deposit(uint256 amount) external {
         require(amount > 0, "AY: zero amount");
-        require(initialized, "AY: not init");
+        require(alive, "AY: not alive");
 
         uint256 depositFee = (amount * DEPOSIT_FEE_BPS) / FEE_DENOM;
         uint256 netAmount = amount - depositFee;
@@ -211,7 +174,8 @@ contract AgentYieldHook is IHooks {
     // Agent Controls
     // ============================================================
 
-    function reinvest() external onlyAgent whenInitialized {
+    /// @notice AI agent reinvests treasury into LP position
+    function reinvest() external onlyAgent {
         require(treasuryBalance > 0, "AY: empty treasury");
         require(block.timestamp >= lastReinvestTime + REINVEST_COOLDOWN, "AY: cooldown");
 
@@ -219,26 +183,38 @@ contract AgentYieldHook is IHooks {
         treasuryBalance = 0;
         lastReinvestTime = block.timestamp;
 
+        // Simulate liquidity addition (simplified for X Layer PoolManager)
         currentLiquidity += uint128(amount / 1e12);
+        totalFeesCollected += amount;
 
         emit Reinvested(amount, currentLiquidity, block.timestamp);
     }
 
+    /// @notice AI agent treasury manually receives ETH (simulated swaps)
+    function depositTreasury(uint256 amount) external onlyAgent {
+        treasuryBalance += amount;
+        totalFeesCollected += amount;
+        emit TreasuryDeposited(amount);
+    }
+
     function setMode(StrategyMode _newMode) external onlyAgent {
-        StrategyMode old = strategy.mode;
-        strategy = getStrategyConfig(_newMode);
+        StrategyMode old = mode;
+        mode = _newMode;
+        _setFeeForMode(_newMode);
+        _setRangeForMode(_newMode);
         emit ModeChanged(old, _newMode);
-        emit FeeUpdated(strategy.fee, strategy.fee);
     }
 
     function setFee(uint24 _newFee) external onlyAgent {
         require(_newFee >= MIN_FEE && _newFee <= MAX_FEE, "AY: invalid fee");
-        uint24 old = strategy.fee;
-        strategy.fee = _newFee;
+        uint24 old = fee;
+        fee = _newFee;
         emit FeeUpdated(old, _newFee);
     }
 
     function postMessage(string calldata content) external onlyAgent {
+        require(bytes(content).length > 0, "AY: empty message");
+        require(bytes(content).length <= 280, "AY: msg too long");
         agentMessages.push(content);
         emit AgentMessagePosted(content, block.timestamp);
     }
@@ -252,6 +228,11 @@ contract AgentYieldHook is IHooks {
         require(_newLower < _newUpper, "AY: invalid ticks");
         currentTickLower = _newLower;
         currentTickUpper = _newUpper;
+    }
+
+    function setAlive(bool _alive) external onlyAgent {
+        alive = _alive;
+        emit AliveSet(_alive, block.timestamp);
     }
 
     // ============================================================
@@ -299,30 +280,24 @@ contract AgentYieldHook is IHooks {
     function beforeSwap(
         address, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata
     ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
-        if (key.fee.isDynamicFee()) {
-            poolManager.updateDynamicLPFee(key, strategy.fee);
-        }
         return (IHooks.beforeSwap.selector, BeforeSwapDelta.wrap(0), 0);
     }
 
     function afterSwap(
-        address, PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta delta, bytes calldata
+        address, PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata
     ) external override onlyPoolManager returns (bytes4, int128) {
-        if (initialized) {
-            _accumulate(delta);
-        }
         return (IHooks.afterSwap.selector, 0);
     }
 
-    function beforeDonate(
-        address, PoolKey calldata, uint256, uint256, bytes calldata
-    ) external override onlyPoolManager returns (bytes4) {
+    function beforeDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)
+        external override onlyPoolManager returns (bytes4)
+    {
         return IHooks.beforeDonate.selector;
     }
 
-    function afterDonate(
-        address, PoolKey calldata, uint256, uint256, bytes calldata
-    ) external override onlyPoolManager returns (bytes4) {
+    function afterDonate(address, PoolKey calldata, uint256, uint256, bytes calldata)
+        external override onlyPoolManager returns (bytes4)
+    {
         return IHooks.afterDonate.selector;
     }
 
@@ -338,10 +313,10 @@ contract AgentYieldHook is IHooks {
         uint256 totalFees,
         uint256 depositorCount,
         uint256 msgCount,
-        StrategyMode mode,
-        uint24 fee,
+        StrategyMode _mode,
+        uint24 _fee,
         uint128 liquidity,
-        bool alive
+        bool _alive
     ) {
         return (
             agentName,
@@ -351,10 +326,10 @@ contract AgentYieldHook is IHooks {
             totalFeesCollected,
             depositorList.length,
             agentMessages.length,
-            strategy.mode,
-            strategy.fee,
+            mode,
+            fee,
             currentLiquidity,
-            initialized
+            alive
         );
     }
 
@@ -381,34 +356,36 @@ contract AgentYieldHook is IHooks {
     }
 
     function estimatedAPY() external view returns (uint256) {
-        if (totalDeposits == 0 || totalFeesCollected == 0) return 0;
-        return (totalFeesCollected * 10000) / totalDeposits;
+        if (totalDeposits == 0) return 0;
+        uint256 period = block.timestamp - depositorList.length > 0 ? depositorList.length : 1;
+        if (period == 0) return 0;
+        // Simplified APY: totalFees / totalDeposits * (365 days / time elapsed)
+        uint256 timeElapsed = block.timestamp - lastReinvestTime;
+        if (timeElapsed == 0 || totalFeesCollected == 0) return 0;
+        return (totalFeesCollected * 365 days * 10000) / (totalDeposits * timeElapsed);
     }
 
     // ============================================================
     // Internal
     // ============================================================
 
-    function _accumulate(BalanceDelta delta) internal {
-        int128 amt0 = delta.amount0();
-        int128 amt1 = delta.amount1();
+    function _setFeeForMode(StrategyMode _mode) internal {
+        if (_mode == StrategyMode.Aggressive) fee = 1;      // 0.01%
+        else if (_mode == StrategyMode.Balanced) fee = 30;  // 0.30%
+        else fee = 100;                                       // 1.00%
+    }
 
-        uint256 volume;
-        if (amt0 != 0) {
-            volume = uint128(amt0 < 0 ? uint128(-amt0) : uint128(amt0));
-        } else if (amt1 != 0) {
-            volume = uint128(amt1 < 0 ? uint128(-amt1) : uint128(amt1));
+    function _setRangeForMode(StrategyMode _mode) internal {
+        if (_mode == StrategyMode.Aggressive) {
+            currentTickLower = -100;
+            currentTickUpper = 100;
+        } else if (_mode == StrategyMode.Balanced) {
+            currentTickLower = -600;
+            currentTickUpper = 600;
         } else {
-            return;
+            currentTickLower = -2000;
+            currentTickUpper = 2000;
         }
-
-        uint256 feeAmount = (volume * uint256(strategy.fee)) / FEE_DENOM;
-        if (feeAmount == 0) return;
-
-        treasuryBalance += feeAmount;
-        totalFeesCollected += feeAmount;
-
-        emit TreasuryAccumulated(feeAmount, totalFeesCollected);
     }
 
     function _calculateYield(address user, uint256 withdrawAmount) internal view returns (uint256) {

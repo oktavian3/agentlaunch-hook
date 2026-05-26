@@ -231,13 +231,8 @@ header{
       </div>
 
       <div class="form-group">
-        <label class="form-label">Token 0 Address</label>
-        <input class="form-input" id="token0" placeholder="0x..." value="">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Token 1 Address</label>
-        <input class="form-input" id="token1" placeholder="0x..." value="">
+        <label class="form-label">Your Wallet (Agent Owner)</label>
+        <input class="form-input" id="agentWalletInput" placeholder="0x..." value="">
       </div>
 
       <div class="form-group">
@@ -323,7 +318,7 @@ header{
 <script>
 // ── CONFIG ─────────────────────────────────────────
 const XLAYER_RPC = 'https://rpc.xlayer.tech';
-const FACTORY_ADDRESS = '0x5aaCc3513266EAa21a1f0f79E8dFf39f793B426c'; // deployed 2026-05-25
+const FACTORY_ADDRESS = '0x3826917647eb6a18975aa8c31986b12ec1d12a08'; // deployed 2026-05-25
 const CHAIN_ID = 196;
 
 // Minimal ABIs
@@ -331,16 +326,15 @@ const FACTORY_ABI = [
   {"inputs":[{"name":"_poolManager","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
   {"inputs":[],"name":"getAgentCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"name":"","type":"uint256"}],"name":"agents","outputs":[{"name":"hookAddress","type":"address"},{"name":"owner","type":"address"},{"name":"name","type":"string"},{"name":"mode","type":"uint8"},{"name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[{"name":"_name","type":"string"},{"name":"_token0","type":"address"},{"name":"_token1","type":"address"},{"name":"_mode","type":"uint8"}],"name":"createAgent","outputs":[{"name":"agentId","type":"uint256"},{"name":"hookAddress","type":"address"}],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"name":"_name","type":"string"},{"name":"_mode","type":"uint8"},{"name":"_agentWallet","type":"address"}],"name":"createAgent","outputs":[{"name":"agentId","type":"uint256"},{"name":"hookAddress","type":"address"}],"stateMutability":"nonpayable","type":"function"},
 ];
 
 const HOOK_ABI = [
   {"inputs":[],"name":"agentName","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
   {"inputs":[],"name":"agentWallet","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
   {"inputs":[],"name":"totalDeposits","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[],"name":"totalFeesCollected","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[],"name":"treasuryBalance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-  {"inputs":[],"name":"estimatedAPY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"totalFeesCollected","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[],"name":"getDepositorCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[],"name":"getMessageCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"name":"index","type":"uint256"}],"name":"getMessage","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
@@ -419,12 +413,12 @@ async function createAgent() {
   if(FACTORY_ADDRESS==='0x0000000000000000000000000000000000000000'){document.getElementById('createStatus').textContent='Factory not deployed';return}
 
   const name=document.getElementById('agentName').value.trim();
-  const t0=document.getElementById('token0').value.trim();
-  const t1=document.getElementById('token1').value.trim();
   const mode=parseInt(document.getElementById('strategyMode').value);
+  let wallet=document.getElementById('agentWalletInput').value.trim();
 
-  if(!name||!t0||!t1){document.getElementById('createStatus').textContent='Fill all fields';return}
-  if(!ethers.isAddress(t0)||!ethers.isAddress(t1)){document.getElementById('createStatus').textContent='Invalid token address';return}
+  if(!name){document.getElementById('createStatus').textContent='Enter agent name';return}
+  if(wallet && !ethers.isAddress(wallet)){document.getElementById('createStatus').textContent='Invalid wallet address';return}
+  if(!wallet) wallet = account;
 
   const btn=document.getElementById('createBtn');
   const status=document.getElementById('createStatus');
@@ -432,7 +426,7 @@ async function createAgent() {
   status.textContent='⏳ Deploying agent...';
 
   try{
-    const tx=await factoryContract.createAgent(name,t0,t1,mode);
+    const tx=await factoryContract.createAgent(name,mode,wallet);
     const receipt=await tx.wait();
     status.innerHTML=`✅ Agent deployed! TX: <a href="https://www.okx.com/explorer/xlayer/tx/${receipt.hash}" target="_blank" style="color:#0066b1">${receipt.hash.slice(0,10)}...</a>`;
     loadMyAgents(account);
