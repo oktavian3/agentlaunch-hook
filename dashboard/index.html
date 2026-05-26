@@ -583,8 +583,9 @@ async function loadAllAgents() {
       try{
         const hook=new ethers.Contract(addr,HOOK_ABI,rpc);
         const info=await hook.getAgentInfo();
-        tvl=parseFloat(ethers.formatEther(info[2])).toFixed(4);
-        const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2);
+        tvl=ethers.formatEther(info[2]);
+        tvl=(Number(tvl)).toFixed(4);
+        try{const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2)}catch(e){}
         if(!info[10])status='🔴';
       }catch(e){}
 
