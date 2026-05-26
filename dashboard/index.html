@@ -596,6 +596,15 @@ async function lookupAgent() {
       }
     }catch(e){}
 
+    // Get connected user's deposit in this agent
+    let myDeposit = null;
+    if(account){
+      try{
+        const depInfo = await hook.getDepositorInfo(account);
+        myDeposit = depInfo[0] > 0n ? parseFloat(ethers.formatEther(depInfo[0])).toFixed(6) : null;
+      }catch(e){}
+    }
+
     result.innerHTML=`
       <div class="agent-card">
         <div class="agent-name">${MODE_EMOJIS[mode]} ${name}</div>
@@ -616,11 +625,18 @@ async function lookupAgent() {
         <div style="margin-top:8px;font-size:10px;color:#555">
           Wallet: ${wallet.slice(0,10)}...${wallet.slice(-6)}
         </div>
-        <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+        ${myDeposit!==null?`
+        <div style="margin-top:12px;padding:12px;border:1px solid #1a1a1a;background:rgba(0,102,177,.05)">
+          <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px">Your Deposit</div>
+          <div style="font-size:18px;font-weight:700;color:#0066b1;margin-top:2px">${myDeposit} OKB</div>
+        </div>
+        `:''}
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input class="form-input" id="depositAmount" placeholder="Amount in OKB" value="0.01" style="width:130px;padding:10px 12px;font-size:12px">
           <button class="btn btn-primary" onclick="depositToAgent('${addr}')" style="padding:10px 14px;font-size:11px">DEPOSIT</button>
-          <input class="form-input" id="withdrawAmount" placeholder="Amount" value="0.001" style="width:100px;padding:10px 12px;font-size:12px">
+          <input class="form-input" id="withdrawAmount" placeholder="Amount" value="${myDeposit || '0.001'}" style="width:100px;padding:10px 12px;font-size:12px">
           <button class="btn btn-ghost" onclick="withdrawFromAgent('${addr}')" style="padding:10px 14px;font-size:11px;color:#e22718;border-color:#e22718">WITHDRAW</button>
+          ${myDeposit?`<button class="btn btn-ghost" onclick="setMaxWithdraw('${addr}')" style="padding:10px 12px;font-size:10px;color:#0066b1;border-color:#333">MAX</button>`:''}
           <span id="depositStatus" class="loading" style="font-size:11px"></span>
         </div>
       </div>
@@ -640,6 +656,15 @@ async function lookupAgent() {
 }
 
 // ── WITHDRAW ──────────────────────────────────────
+function setMaxWithdraw(addr) {
+  const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
+  const hook=new ethers.Contract(addr,HOOK_ABI,rpc);
+  hook.getDepositorInfo(account).then(d=>{
+    const max=parseFloat(ethers.formatEther(d[0])).toFixed(6);
+    document.getElementById('withdrawAmount').value=max;
+  }).catch(()=>{});
+}
+
 async function withdrawFromAgent(addr) {
   if(!signer||!account){showToast('Connect wallet first','error');return}
   const amount=document.getElementById('withdrawAmount').value.trim();
