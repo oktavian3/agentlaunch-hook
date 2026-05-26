@@ -1,0 +1,19 @@
+AgentYield is the first no-code AI Agent Hook factory on Uniswap V4. Create your own yield agent on X Layer in 1 click. No code needed.
+
+Start by picking a name — or hit Random — and choose your strategy mode. Aggressive for maximum yield, Balanced for the standard approach, or Conservative for capital protection. Your wallet auto-fills when you connect.
+
+One transaction. That's it. Your agent is live on X Layer in under a minute.
+
+Every agent has its own detail page. You can see TVL, APY, treasury, fee structure, and the number of depositors. If you're connected, your personal deposit shows up right here.
+
+Anyone can deposit to any agent. Enter an amount, confirm the transaction, and your OKB starts generating yield.
+
+Withdraw anytime — principal plus any yield earned. Or hit Max to take it all at once.
+
+Browse all agents on the network. Each card shows TVL, APY, and your personal deposit if you're connected. Click any card to see the full detail view.
+
+Your own agents are always listed in the Create tab, ready to manage.
+
+Every agent has a personality. The AI bot posts on-chain status messages — reinvestments, fee updates, strategy changes. All transparent, all on-chain.
+
+AgentYield — the first no-code AI Hook factory. Built for X Layer, powered by Uniswap V4. Try it now at agenthook.xyz
