@@ -513,8 +513,10 @@ async function lookupAgent() {
           Wallet: ${wallet.slice(0,10)}...${wallet.slice(-6)}
         </div>
         <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
-          <input class="form-input" id="depositAmount" placeholder="Amount in OKB" value="0.01" style="width:160px;padding:10px 12px;font-size:12px">
-          <button class="btn btn-primary" onclick="depositToAgent('${addr}')" style="padding:10px 18px;font-size:11px">DEPOSIT</button>
+          <input class="form-input" id="depositAmount" placeholder="Amount in OKB" value="0.01" style="width:130px;padding:10px 12px;font-size:12px">
+          <button class="btn btn-primary" onclick="depositToAgent('${addr}')" style="padding:10px 14px;font-size:11px">DEPOSIT</button>
+          <input class="form-input" id="withdrawAmount" placeholder="Amount" value="0.001" style="width:100px;padding:10px 12px;font-size:12px">
+          <button class="btn btn-ghost" onclick="withdrawFromAgent('${addr}')" style="padding:10px 14px;font-size:11px;color:#e22718;border-color:#e22718">WITHDRAW</button>
           <span id="depositStatus" class="loading" style="font-size:11px"></span>
         </div>
       </div>
@@ -530,6 +532,26 @@ async function lookupAgent() {
     `;
   }catch(e){
     result.innerHTML=`<div class="error">Error: ${e.message.slice(0,100)}</div>`;
+  }
+}
+
+// ── WITHDRAW ──────────────────────────────────────
+async function withdrawFromAgent(addr) {
+  if(!signer||!account){document.getElementById('depositStatus').textContent='Connect wallet first';return}
+  const amount=document.getElementById('withdrawAmount').value.trim();
+  if(!amount||isNaN(amount)||parseFloat(amount)<=0){document.getElementById('depositStatus').textContent='Invalid amount';return}
+  const status=document.getElementById('depositStatus');
+  status.textContent='⏳ Withdrawing...';
+  try{
+    const amountWei=ethers.parseEther(amount);
+    const hook=new ethers.Contract(addr,HOOK_ABI,signer);
+    const tx=await hook.withdraw(amountWei);
+    await tx.wait();
+    status.innerHTML='✅ Withdrawn! <a href="https://www.okx.com/explorer/xlayer/tx/${tx.hash}" target="_blank" style="color:#e22718">View TX</a>';
+    lookupAgent();
+  }catch(e){
+    status.textContent='❌ '+e.message.slice(0,100);
+    console.error(e);
   }
 }
 
