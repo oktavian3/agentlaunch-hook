@@ -742,7 +742,7 @@ async function loadAllAgents() {
       const agent=await factory.agents(i);
       const addr=agent[0],owner=agent[1],name=agent[2],mode=Number(agent[3]);
 
-      let tvl='0',apy='0',status=MODE_EMOJIS[mode];
+      let tvl='0',apy='0',status=MODE_EMOJIS[mode],myDep='';
       try{
         const hook=new ethers.Contract(addr,HOOK_ABI,rpc);
         const info=await hook.getAgentInfo();
@@ -751,6 +751,13 @@ async function loadAllAgents() {
         try{const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2)}catch(e){}
         if(apy==='0.00')apy='awaiting';
         if(!info[10])status='🔴';
+        // Check personal deposit if wallet connected
+        if(account){
+          try{
+            const d=await hook.getDepositorInfo(account);
+            if(d[0]>0n)myDep=parseFloat(ethers.formatEther(d[0])).toFixed(4);
+          }catch(e){}
+        }
       }catch(e){}
 
       html+=`
@@ -762,6 +769,7 @@ async function loadAllAgents() {
             <span>APY: <strong style="color:#fff">${apy==='awaiting'?'<span style="color:#555">awaiting yield</span>':apy+'%'}</strong></span>
             <span>Mode: <strong style="color:#fff">${MODE_NAMES[mode]}</strong></span>
           </div>
+          ${myDep?`<div style="margin-top:6px;font-size:11px;color:#0066b1;border-top:1px solid #1a1a1a;padding-top:6px">Your deposit: <strong>${myDep} OKB</strong></div>`:''}
         </div>
       `;
     }
