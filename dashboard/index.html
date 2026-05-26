@@ -57,7 +57,7 @@ header{
 }
 
 /* Stats */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
 .stat-box{
   background:rgba(13,13,13,.7);border:1px solid #1a1a1a;padding:16px;
   backdrop-filter:blur(8px);transition:.2s
@@ -147,6 +147,9 @@ header{
   .container{padding:12px}
   header{flex-direction:column;gap:12px;align-items:flex-start}
 }
+@media(max-width:480px){
+  .stats{grid-template-columns:1fr}
+}
 
 /* Loading states */
 .loading{color:#666;font-size:12px;letter-spacing:1px;text-transform:uppercase}
@@ -215,6 +218,11 @@ header{
       <div class="stat-label">Total TVL</div>
       <div class="stat-value" id="statTVL">—</div>
       <div class="stat-sub">ETH deposited</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Your TVL</div>
+      <div class="stat-value" id="statMyTVL">—</div>
+      <div class="stat-sub">your agents</div>
     </div>
     <div class="stat-box">
       <div class="stat-label">Network</div>
@@ -675,6 +683,7 @@ async function loadAllAgents() {
 async function loadMyAgents(addr) {
   if(!factoryContract)return;
   const container=document.getElementById('myAgents');
+  let myTVL=0n;
   try{
     const count=await factoryContract.getAgentCount();
     let found=false;
@@ -684,10 +693,23 @@ async function loadMyAgents(addr) {
       const agent=await factoryContract.agents(i);
       if(agent[1].toLowerCase()===addr.toLowerCase()){
         found=true;
+        // Try to get TVL for this agent
+        let tvl='0';
+        try{
+          const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
+          const hook=new ethers.Contract(agent[0],HOOK_ABI,rpc);
+          const info=await hook.getAgentInfo();
+          tvl=parseFloat(ethers.formatEther(info[2])).toFixed(4);
+          myTVL+=info[2];
+        }catch(e){}
+
         html+=`
           <div class="agent-card">
             <div class="agent-name">${MODE_EMOJIS[Number(agent[3])]} ${agent[2]}</div>
             <div class="agent-meta">${agent[0].slice(0,10)}...${agent[0].slice(-6)}</div>
+            <div style="margin-top:6px;font-size:11px;color:#666">
+              TVL: <strong style="color:#fff">${tvl} ETH</strong>
+            </div>
             <div style="margin-top:8px;font-size:11px;color:#666">
               <a href="#" onclick="document.getElementById('explorerInput').value='${agent[0]}';switchTab('agents');lookupAgent();return false" style="color:#0066b1">View Details →</a>
             </div>
@@ -695,6 +717,8 @@ async function loadMyAgents(addr) {
         `;
       }
     }
+    // Update my TVL stat
+    document.getElementById('statMyTVL').textContent=parseFloat(ethers.formatEther(myTVL)).toFixed(4);
     container.innerHTML=found?html:'<div class="loading">No agents yet. Create one above!</div>';
   }catch(e){container.innerHTML='<div class="loading">Connect wallet to see your agents</div>'}
 }
