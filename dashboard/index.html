@@ -601,7 +601,7 @@ async function lookupAgent() {
     if(account){
       try{
         const depInfo = await hook.getDepositorInfo(account);
-        myDeposit = depInfo[0] > 0n ? parseFloat(ethers.formatEther(depInfo[0])).toFixed(6) : null;
+        myDeposit = depInfo[0] > 0n ? parseFloat(ethers.formatEther(depInfo[0])).toFixed(6) : '0';
       }catch(e){}
     }
 
@@ -626,9 +626,9 @@ async function lookupAgent() {
           Wallet: ${wallet.slice(0,10)}...${wallet.slice(-6)}
         </div>
         ${myDeposit!==null?`
-        <div style="margin-top:12px;padding:12px;border:1px solid #1a1a1a;background:rgba(0,102,177,.05)">
+        <div style="margin-top:12px;padding:12px;border:1px solid #1a1a1a;background:${myDeposit==='0'?'transparent':'rgba(0,102,177,.05)'}">
           <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px">Your Deposit</div>
-          <div style="font-size:18px;font-weight:700;color:#0066b1;margin-top:2px">${myDeposit} OKB</div>
+          <div style="font-size:18px;font-weight:700;${myDeposit==='0'?'color:#444':'color:#0066b1'};margin-top:2px">${myDeposit==='0'?'No deposit':myDeposit+' OKB'}</div>
         </div>
         `:''}
         <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -756,6 +756,7 @@ async function loadAllAgents() {
           try{
             const d=await hook.getDepositorInfo(account);
             if(d[0]>0n)myDep=parseFloat(ethers.formatEther(d[0])).toFixed(4);
+            else myDep='0';
           }catch(e){}
         }
       }catch(e){}
@@ -769,7 +770,7 @@ async function loadAllAgents() {
             <span>APY: <strong style="color:#fff">${apy==='awaiting'?'<span style="color:#555">awaiting yield</span>':apy+'%'}</strong></span>
             <span>Mode: <strong style="color:#fff">${MODE_NAMES[mode]}</strong></span>
           </div>
-          ${myDep?`<div style="margin-top:6px;font-size:11px;color:#0066b1;border-top:1px solid #1a1a1a;padding-top:6px">Your deposit: <strong>${myDep} OKB</strong></div>`:''}
+          ${myDep?`<div style="margin-top:6px;font-size:11px;${myDep==='0'?'color:#444':'color:#0066b1'};border-top:1px solid #1a1a1a;padding-top:6px">${myDep==='0'?'No deposit':`Your deposit: <strong>${myDep} OKB</strong>`}</div>`:''}
         </div>
       `;
     }
