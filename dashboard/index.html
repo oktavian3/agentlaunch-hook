@@ -547,7 +547,7 @@ async function withdrawFromAgent(addr) {
     const hook=new ethers.Contract(addr,HOOK_ABI,signer);
     const tx=await hook.withdraw(amountWei);
     await tx.wait();
-    status.innerHTML='✅ Withdrawn! <a href="https://www.okx.com/explorer/xlayer/tx/${tx.hash}" target="_blank" style="color:#e22718">View TX</a>';
+    status.innerHTML='✅ Withdrawn! <a href="https://www.okx.com/explorer/xlayer/tx/'+tx.hash+'" target="_blank" style="color:#e22718">View TX</a>';
     lookupAgent();
   }catch(e){
     status.textContent='❌ '+e.message.slice(0,100);
@@ -567,7 +567,7 @@ async function depositToAgent(addr) {
     const hook=new ethers.Contract(addr,HOOK_ABI,signer);
     const tx=await hook.deposit(amountWei,{value:amountWei});
     await tx.wait();
-    status.innerHTML='✅ Deposited! <a href="https://www.okx.com/explorer/xlayer/tx/${tx.hash}" target="_blank" style="color:#0066b1">View TX</a>';
+    status.innerHTML='✅ Deposited! <a href="https://www.okx.com/explorer/xlayer/tx/'+tx.hash+'" target="_blank" style="color:#0066b1">View TX</a>';
     lookupAgent();
   }catch(e){
     status.textContent='❌ '+e.message.slice(0,100);
