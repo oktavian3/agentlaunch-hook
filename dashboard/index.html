@@ -278,12 +278,15 @@ header{
 
       <div class="form-group">
         <label class="form-label">Agent Name</label>
-        <input class="form-input" id="agentName" placeholder="My Yield Agent" value="MyYieldAgent">
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="agentName" placeholder="My Yield Agent" value="MyYieldAgent" style="flex:1">
+          <button class="btn btn-ghost" onclick="generateRandomName()" style="padding:10px 14px;font-size:11px;white-space:nowrap;color:#888;border-color:#262626">🎲 RANDOM</button>
+        </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Your Wallet (Agent Owner)</label>
-        <input class="form-input" id="agentWalletInput" placeholder="0x..." value="">
+        <input class="form-input" id="agentWalletInput" placeholder="0x..." value="" readonly style="color:#888;cursor:not-allowed">
       </div>
 
       <div class="form-group">
@@ -401,6 +404,26 @@ const HOOK_ABI = [
 const MODE_NAMES = ['Aggressive', 'Balanced', 'Conservative'];
 const MODE_EMOJIS = ['🚀', '⚖️', '🛡️'];
 
+// ── RANDOM NAME GENERATOR ─────────────────────────
+const AGENT_ADJECTIVES = [
+  'Swift','Silent','Bold','Sharp','Wild','Cool','Rapid','Neon',
+  'Cyber','Dark','Ghost','Iron','Lunar','Nova','Pixel','Quantum',
+  'Shadow','Titan','Ultra','Vapor','Zero','Blaze','Cipher','Drift',
+  'Echo','Flux','Grid','Haze','Jade','Kilo','Mega','Nitro'
+];
+const AGENT_NOUNS = [
+  'Agent','Hook','Vault','Yield','Pool','Fleet','Core','Mint',
+  'Node','Orbit','Pulse','Scope','Surge','Trade','Trust','Wave',
+  'Apex','Boost','Chain','Drive','Edge','Forge','Gear','Hive',
+  'Lane','Mesh','Peak','Rift','Spark','Tide','Veil','Warp'
+];
+function generateRandomName() {
+  const a = AGENT_ADJECTIVES[Math.floor(Math.random() * AGENT_ADJECTIVES.length)];
+  const n = AGENT_NOUNS[Math.floor(Math.random() * AGENT_NOUNS.length)];
+  const num = Math.floor(Math.random() * 100);
+  document.getElementById('agentName').value = `${a}${n}${num}`;
+}
+
 let provider, signer, account;
 let factoryContract;
 
@@ -477,6 +500,8 @@ async function connectWallet() {
     document.getElementById('walletBtn').textContent=account.slice(0,6)+'...'+account.slice(-4);
     document.getElementById('statStatus').textContent='🟢 CONNECTED';
     document.getElementById('statStatusSub').textContent=account.slice(0,10)+'...';
+    // Auto-fill wallet input in CREATE form
+    document.getElementById('agentWalletInput').value=account;
 
     // Init factory
     if(FACTORY_ADDRESS!=='0x0000000000000000000000000000000000000000'){
