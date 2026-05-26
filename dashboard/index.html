@@ -441,10 +441,7 @@ function showToast(msg,type,link){
 }
 
 // ── WALLET ─────────────────────────────────────────
-let account=null;
-let provider=null;
-let signer=null;
-let factoryContract=null;
+// account, provider, signer, factoryContract declared above in CONFIG
 
 async function connectWallet() {
   if(typeof window.ethereum==='undefined'){document.getElementById('walletBtn').textContent='INSTALL METAMASK';return}
