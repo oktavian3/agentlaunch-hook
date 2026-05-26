@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AGENTYIELD</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+  <script>if(typeof ethers==='undefined')document.write('<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"><\\/script>');</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -540,27 +541,26 @@ async function loadGlobalStats() {
 
 // ── ALL AGENTS ────────────────────────────────────
 async function loadAllAgents() {
-  if(!factoryContract)return;
   const container=document.getElementById('allAgents');
   try{
-    const count=await factoryContract.getAgentCount();
+    const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
+    const factory=new ethers.Contract(FACTORY_ADDRESS,FACTORY_ABI,rpc);
+    const count=await factory.getAgentCount();
     if(count==0){container.innerHTML='<div class="loading">No agents deployed yet</div>';return}
 
     let html='';
-    const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
 
     for(let i=count-1;i>=Math.max(0,count-20);i--){
-      const agent=await factoryContract.agents(i);
+      const agent=await factory.agents(i);
       const addr=agent[0],owner=agent[1],name=agent[2],mode=Number(agent[3]);
 
-      let tvl='0',apy='0',status='⚪';
+      let tvl='0',apy='0',status=MODE_EMOJIS[mode];
       try{
         const hook=new ethers.Contract(addr,HOOK_ABI,rpc);
         const info=await hook.getAgentInfo();
         tvl=parseFloat(ethers.formatEther(info[2])).toFixed(4);
         const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2);
-        if(info[10])status=MODE_EMOJIS[mode];
-        else status='🔴';
+        if(!info[10])status='🔴';
       }catch(e){}
 
       html+=`
@@ -576,7 +576,7 @@ async function loadAllAgents() {
       `;
     }
     container.innerHTML=html;
-  }catch(e){container.innerHTML='<div class="error">Error loading agents</div>'}
+  }catch(e){container.innerHTML='<div class="error">Error loading agents: '+e.message.slice(0,80)+'</div>'}
 }
 
 // ── MY AGENTS ─────────────────────────────────────
@@ -608,9 +608,29 @@ async function loadMyAgents(addr) {
 }
 
 // ── INIT ──────────────────────────────────────────
-// Try to auto-connect if wallet already authorized
+// Auto-switch to X Layer & try auto-connect
 window.addEventListener('load',async()=>{
+  // Auto-switch network for all visitors
   if(typeof window.ethereum!=='undefined'){
+    try{
+      await window.ethereum.request({
+        method:'wallet_switchEthereumChain',
+        params:[{chainId:'0xc4'}],
+      });
+    }catch(e){
+      if(e.code===4902){
+        await window.ethereum.request({
+          method:'wallet_addEthereumChain',
+          params:[{
+            chainId:'0xc4',
+            chainName:'X Layer',
+            nativeCurrency:{name:'OKB',symbol:'OKB',decimals:18},
+            rpcUrls:['https://rpc.xlayer.tech'],
+            blockExplorerUrls:['https://www.okx.com/explorer/xlayer/'],
+          }],
+        });
+      }
+    }
     try{
       const accounts=await window.ethereum.request({method:'eth_accounts'});
       if(accounts.length>0)await connectWallet();
@@ -618,6 +638,8 @@ window.addEventListener('load',async()=>{
   }
   document.getElementById('statStatus').textContent='⚪ DISCONNECTED';
   document.getElementById('statStatusSub').textContent='connect wallet';
+  // Load all agents even without wallet
+  setTimeout(loadAllAgents, 1000);
 });
 </script>
 </body>
