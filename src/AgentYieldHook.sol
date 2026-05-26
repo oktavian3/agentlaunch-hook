@@ -166,6 +166,10 @@ contract AgentYieldHook is IHooks {
 
         emit Withdrawn(msg.sender, amount, userYield);
 
+        // Send back ETH
+        (bool sent,) = payable(msg.sender).call{value: amount + userYield}("");
+        require(sent, "AY: send failed");
+
         if (share.amount == 0) {
             _removeDepositor(msg.sender);
         }
