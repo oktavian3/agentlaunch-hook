@@ -609,10 +609,24 @@ async function depositToAgent(addr) {
 async function loadGlobalStats() {
   if(!factoryContract)return;
   try{
-    const count=await factoryContract.getAgentCount();
+    const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
+    const factory=new ethers.Contract(FACTORY_ADDRESS,FACTORY_ABI,rpc);
+    const count=await factory.getAgentCount();
     document.getElementById('statAgents').textContent=count;
     document.getElementById('statStatus').textContent='🟢 ONLINE';
     document.getElementById('statStatusSub').textContent=count+' agents';
+
+    // Sum TVL from all agents
+    let totalTVL=0n;
+    for(let i=0;i<count;i++){
+      try{
+        const agent=await factory.agents(i);
+        const hook=new ethers.Contract(agent[0],HOOK_ABI,rpc);
+        const info=await hook.getAgentInfo();
+        totalTVL+=info[2]; // tvl
+      }catch(e){}
+    }
+    document.getElementById('statTVL').textContent=parseFloat(ethers.formatEther(totalTVL)).toFixed(4);
   }catch(e){}
 }
 
