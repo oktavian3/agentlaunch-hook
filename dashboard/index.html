@@ -374,7 +374,7 @@ header{
 <script>
 // ── CONFIG ─────────────────────────────────────────
 const XLAYER_RPC = 'https://rpc.xlayer.tech';
-const FACTORY_ADDRESS = '0x74A25c7831EB3EC76402392fD394eEd31F218BCB'; // deployed 2026-05-26 v4 (own PoolManager)
+const FACTORY_ADDRESS = '0x0416d17FB8D466D495E057B080Cd1f8a55D9b567'; // deployed 2026-05-26 v4 (own PoolManager)
 const CHAIN_ID = 196;
 
 // Minimal ABIs
@@ -399,6 +399,8 @@ const HOOK_ABI = [
   {"inputs":[{"name":"user","type":"address"}],"name":"getDepositorInfo","outputs":[{"name":"amount","type":"uint256"},{"name":"depositedAt","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"name":"amount","type":"uint256"}],"name":"depositTreasury","outputs":[],"stateMutability":"nonpayable","type":"function"},
   {"inputs":[{"name":"amount","type":"uint256"}],"name":"simulateSwapFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"name":"percentage","type":"uint256"}],"name":"autoTrade","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"name":"percentage","type":"uint256"},{"name":"user","type":"address"}],"name":"previewAutoTrade","outputs":[{"name":"tradeAmount","type":"uint256"},{"name":"estimatedYield","type":"uint256"}],"stateMutability":"view","type":"function"},
   {"inputs":[{"name":"amount","type":"uint256"}],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"},
   {"inputs":[{"name":"amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
 ];
@@ -670,6 +672,24 @@ async function lookupAgent() {
           ${myDeposit?`<button class="btn btn-ghost" onclick="setMaxWithdraw('${addr}')" style="padding:10px 12px;font-size:10px;color:#0066b1;border-color:#333">MAX</button>`:''}
           <span id="depositStatus" class="loading" style="font-size:11px"></span>
         </div>
+        ${myDeposit!==null && myDeposit!=='0'?`
+        <div style="margin-top:16px;padding:14px;border:1px solid #262626;background:rgba(0,102,177,.05)">
+          <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:8px">🔁 AUTO TRADE</div>
+          <div style="font-size:11px;color:#666;margin-bottom:8px">Trade a percentage of your deposit to generate simulated yield</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <select id="tradePercent" style="background:#111;color:#fff;border:1px solid #333;padding:10px 12px;font-size:12px;min-width:100px">
+              <option value="10">10%</option>
+              <option value="25" selected>25%</option>
+              <option value="50">50%</option>
+              <option value="75">75%</option>
+              <option value="100">100%</option>
+            </select>
+            <span style="font-size:11px;color:#555" id="tradePreview">Preview: —</span>
+            <button class="btn btn-primary" onclick="executeAutoTrade('${addr}')" style="padding:10px 14px;font-size:11px">EXECUTE TRADE</button>
+            <span id="tradeStatus" class="loading" style="font-size:11px"></span>
+          </div>
+        </div>
+        `:''}
       </div>
       ${msgCount>0?`
         <div style="margin-top:12px">
@@ -732,6 +752,34 @@ async function depositToAgent(addr) {
     console.error(e);
   }
 }
+
+// ── AUTO TRADE ─────────────────────────────────────
+async function executeAutoTrade(addr) {
+  if(!signer||!account){showToast('Connect wallet first','error');return}
+  const percent=parseInt(document.getElementById('tradePercent').value);
+  const status=document.getElementById('tradeStatus');
+  if(!percent||percent<1||percent>100){status.textContent='Invalid %';return}
+  status.textContent='⏳ Executing trade...';
+  try{
+    const hook=new ethers.Contract(addr,HOOK_ABI,signer);
+    const tx=await hook.autoTrade(percent);
+    await tx.wait();
+    showToast('✅ Trade executed! Check agent for yield','success','https://www.okx.com/explorer/xlayer/tx/'+tx.hash);
+    status.textContent='✅ Trade done!';
+    setTimeout(lookupAgent,1500);
+  }catch(e){
+    status.textContent='❌ '+e.message.slice(0,60);
+    showToast('❌ Trade failed','error');
+    console.error(e);
+  }
+}
+
+document.addEventListener('change',function(e){
+  if(e.target.id==='tradePercent'){
+    const preview=document.getElementById('tradePreview');
+    if(preview)preview.textContent='Select percentage to preview';
+  }
+});
 
 // ── GLOBAL STATS ──────────────────────────────────
 async function loadGlobalStats() {

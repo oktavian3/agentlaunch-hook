@@ -1,353 +1,299 @@
 #!/usr/bin/env python3
 """
-AgentYield Factory Scan Bot
-Scans the factory for all agents, processes those with TVL > 0.
-Also handles the specific --agent for targeted runs.
+Factory-wide AgentYield bot scan — runs the bot for ALL agents in the factory.
+Scans factory, finds all agents, processes each one.
 """
 import os
-import sys
 import json
-import time
-from datetime import datetime, timezone
+import sys
 from dotenv import load_dotenv
 
-load_dotenv('/root/agentlaunch-hook/.env')
+load_dotenv()
 
+PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 RPC = os.getenv("XLAYER_RPC_URL", "https://rpc.xlayer.tech")
-FACTORY_ADDRESS = os.getenv("FACTORY_ADDRESS", "0x74A25c7831EB3EC76402392fD394eEd31F218BCB")
-PRIVATE_KEY = os.getenv("PRIVATE_KEY", "")
-
+FACTORY_ADDRESS = os.getenv("FACTORY_ADDRESS")
+OPERATOR = "0x9D15099886F62E273eF88E17c2E53AE7f9144403"
 CHAIN_ID = 196
-OPERATOR_WALLET = "0x9D15099886F62E273eF88E17c2E53AE7f9144403"
-
-HOOK_ABI = json.dumps([
-    {"inputs":[],"name":"agentName","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"agentWallet","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"treasuryBalance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"totalDeposits","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"totalFeesCollected","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"lastReinvestTime","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"REINVEST_COOLDOWN","outputs":[{"name":"","type":"uint32"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"reinvest","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"name":"content","type":"string"}],"name":"postMessage","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"name":"_newFee","type":"uint24"}],"name":"setFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"name":"_newMode","type":"uint8"}],"name":"setMode","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"name":"_newLower","type":"int24"},{"name":"_newUpper","type":"int24"}],"name":"rebalancePosition","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[],"name":"estimatedAPY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"name":"amount","type":"uint256"}],"name":"simulateSwapFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[],"name":"getAgentInfo","outputs":[{"name":"name","type":"string"},{"name":"wallet","type":"address"},{"name":"tvl","type":"uint256"},{"name":"treasury","type":"uint256"},{"name":"totalFees","type":"uint256"},{"name":"depositorCount","type":"uint256"},{"name":"msgCount","type":"uint256"},{"name":"mode","type":"uint8"},{"name":"fee","type":"uint24"},{"name":"liquidity","type":"uint128"},{"name":"alive","type":"bool"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"getMessageCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"name":"index","type":"uint256"}],"name":"getMessage","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
-    {"inputs":[],"name":"getDepositorCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-])
-
-FACTORY_ABI = json.dumps([
-    {"inputs":[],"name":"getAgentCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"name":"","type":"uint256"}],"name":"agents","outputs":[{"name":"hookAddress","type":"address"},{"name":"owner","type":"address"},{"name":"name","type":"string"},{"name":"mode","type":"uint8"},{"name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
-])
-
-MODES = {0: "Aggressive", 1: "Balanced", 2: "Conservative"}
 
 from web3 import Web3
-
 w3 = Web3(Web3.HTTPProvider(RPC))
+
 if not w3.is_connected():
-    print(f"❌ ERROR: Cannot connect to {RPC}")
+    print("FATAL: Cannot connect to X Layer RPC")
     sys.exit(1)
 
 account = w3.eth.account.from_key(PRIVATE_KEY)
 wallet = account.address
-print(f"🔌 Connected to X Layer (Chain ID: {CHAIN_ID})")
-print(f"👛 Operator wallet: {wallet}")
-print(f"   (matches expected: {wallet.lower() == OPERATOR_WALLET.lower()})")
 
-factory = w3.eth.contract(address=Web3.to_checksum_address(FACTORY_ADDRESS), abi=json.loads(FACTORY_ABI))
+print("=" * 60)
+print("🤖 AGENTYIELD FACTORY BOT — FULL FACTORY SCAN")
+print("=" * 60)
+print(f"Time:  {__import__('datetime').datetime.now()}")
+print(f"RPC:   {RPC}")
+print(f"Operator: {wallet}")
+print()
 
-ts = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+# ── ABIs ──
+FACTORY_ABI = json.loads(json.dumps([
+    {"inputs":[],"name":"getAgentCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"","type":"uint256"}],"name":"agents","outputs":[{"name":"hookAddress","type":"address"},{"name":"owner","type":"address"},{"name":"name","type":"string"},{"name":"mode","type":"uint8"},{"name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
+]))
 
-def get_contract(addr):
-    return w3.eth.contract(address=Web3.to_checksum_address(addr), abi=json.loads(HOOK_ABI))
+HOOK_ABI = json.loads(json.dumps([
+    {"inputs":[],"name":"getAgentInfo","outputs":[{"name":"name","type":"string"},{"name":"wallet","type":"address"},{"name":"tvl","type":"uint256"},{"name":"treasury","type":"uint256"},{"name":"totalFees","type":"uint256"},{"name":"depositorCount","type":"uint256"},{"name":"msgCount","type":"uint256"},{"name":"mode","type":"uint8"},{"name":"fee","type":"uint24"},{"name":"liquidity","type":"uint128"},{"name":"alive","type":"bool"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"amount","type":"uint256"}],"name":"simulateSwapFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"name":"content","type":"string"}],"name":"postMessage","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[],"name":"getMessageCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"index","type":"uint256"}],"name":"getMessage","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"estimatedAPY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"lastReinvestTime","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"REINVEST_COOLDOWN","outputs":[{"name":"","type":"uint32"}],"stateMutability":"view","type":"function"},
+    {"inputs":[],"name":"reinvest","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[],"name":"agentWallet","outputs":[{"name":"","type":"address"}],"stateMutability":"view","type":"function"},
+]))
 
-def simulate_fee(hook_contract, amount_wei, nonce, gas_price):
-    try:
-        tx = hook_contract.functions.simulateSwapFee(amount_wei).build_transaction({
-            'from': wallet,
-            'nonce': nonce,
-            'gas': 150000,
-            'gasPrice': gas_price,
-            'chainId': CHAIN_ID,
-        })
-        signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-        return tx_hash.hex(), receipt['gasUsed']
-    except Exception as e:
-        return None, str(e)
+factory = w3.eth.contract(address=Web3.to_checksum_address(FACTORY_ADDRESS), abi=FACTORY_ABI)
+count = factory.functions.getAgentCount().call()
+print(f"📊 Total agents in factory: {count}")
+print()
 
-def post_message(hook_contract, msg, nonce, gas_price):
-    try:
-        tx = hook_contract.functions.postMessage(msg).build_transaction({
-            'from': wallet,
-            'nonce': nonce,
-            'gas': 150000,
-            'gasPrice': gas_price,
-            'chainId': CHAIN_ID,
-        })
-        signed = account.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-        return tx_hash.hex(), receipt['gasUsed']
-    except Exception as e:
-        return None, str(e)
-
-# ============================================================
-# PHASE 1: Run the specific agent bot first
-# ============================================================
-print(f"\n{'='*60}")
-print(f"📌 PHASE 1: Specific Agent Bot")
-print(f"{'='*60}")
-
-target_agent = "0x5aFa80D2f9aed30A0240d7Aa3A69D21C7328D55b"
-print(f"\n🎯 Running bot for agent: {target_agent}")
-hook = get_contract(target_agent)
-
-# Read state
-try:
-    info = hook.functions.getAgentInfo().call()
-    state = {
-        "name": info[0],
-        "wallet": info[1],
-        "tvl_eth": float(w3.from_wei(info[2], 'ether')),
-        "treasury_eth": float(w3.from_wei(info[3], 'ether')),
-        "total_fees_eth": float(w3.from_wei(info[4], 'ether')),
-        "depositor_count": info[5],
-        "msg_count": info[6],
-        "mode": info[7],
-        "fee_bps": info[8],
-        "liquidity": info[9],
-        "alive": info[10],
-    }
-    state["fee_pct"] = state["fee_bps"] / 100
-    try:
-        state["apy_bps"] = hook.functions.estimatedAPY().call()
-        state["apy_pct"] = state["apy_bps"] / 100
-    except:
-        state["apy_bps"] = 0
-        state["apy_pct"] = 0.0
-
-    print(f"  Name:       {state['name']}")
-    print(f"  Mode:       {MODES.get(state['mode'], '?')} (mode={state['mode']})")
-    print(f"  Fee:        {state['fee_pct']:.2f}%")
-    print(f"  TVL:        {state['tvl_eth']:.4f} ETH")
-    print(f"  Treasury:   {state['treasury_eth']:.6f} ETH")
-    print(f"  Total Fees: {state['total_fees_eth']:.6f} ETH")
-    print(f"  Depositors: {state['depositor_count']}")
-    print(f"  APY:        {state['apy_pct']:.2f}%")
-    print(f"  Alive:      {state['alive']}")
-    print(f"  Msg Count:  {state['msg_count']}")
-except Exception as e:
-    print(f"  ❌ Error reading agent state: {e}")
-    state = {}
-
-# Decide & Execute
-target_actions = []
-target_state = {}
-if state and state.get("alive", False):
-    nonce = w3.eth.get_transaction_count(wallet)
-    gas_price = w3.eth.gas_price
-
-    # Simulate fee if TVL > 0
-    if state.get("tvl_eth", 0) > 0:
-        sim_amount = int(state["tvl_eth"] * 0.001 * 1e18)
-        if sim_amount > 0:
-            print(f"\n  💸 Simulating swap fee: {w3.from_wei(sim_amount, 'ether'):.6f} ETH ...")
-            tx_hash, result = simulate_fee(hook, sim_amount, nonce, gas_price)
-            if tx_hash:
-                print(f"     ✅ TX: {tx_hash} (gas: {result})")
-                target_actions.append(f"simulateSwapFee({w3.from_wei(sim_amount, 'ether'):.6f} ETH) → {tx_hash}")
-                nonce += 1
-            else:
-                print(f"     ❌ Failed: {result}")
-
-    # Post status message (operator wallet owns it)
-    print(f"\n  📝 Posting on-chain status message ...")
-    mode_name = MODES.get(state.get("mode", 1), "Balanced")
-    msg = f"🤖 AgentYield Bot | {ts} | TVL: {state['tvl_eth']:.4f} ETH | APY: {state['apy_pct']:.2f}% | Mode: {mode_name} | Treasury: {state['treasury_eth']:.6f} ETH | Depositors: {state['depositor_count']}"
-    tx_hash, result = post_message(hook, msg, nonce, gas_price)
-    if tx_hash:
-        print(f"     ✅ TX: {tx_hash} (gas: {result})")
-        target_actions.append(f"postMessage() → {tx_hash}")
-    else:
-        print(f"     ❌ Failed: {result}")
-
-    target_state = state
-else:
-    print(f"  ⚠️ Agent not alive or no state, skipping actions")
-
-# ============================================================
-# PHASE 2: Scan factory for ALL agents
-# ============================================================
-print(f"\n{'='*60}")
-print(f"🔍 PHASE 2: Factory Scan — All Agents")
-print(f"{'='*60}")
-
-try:
-    agent_count = factory.functions.getAgentCount().call()
-    print(f"\n📊 Total agents in factory: {agent_count}")
-except Exception as e:
-    print(f"❌ Error getting agent count: {e}")
-    agent_count = 0
-
+# ── Scan all agents ──
 all_agents = []
-
-for i in range(agent_count):
+for i in range(count):
     try:
-        agent_data = factory.functions.agents(i).call()
-        hook_addr = agent_data[0]
-        owner = agent_data[1]
-        name = agent_data[2]
-        mode = agent_data[3]
-        created_at = agent_data[4]
-
+        info = factory.functions.agents(i).call()
         all_agents.append({
             "index": i,
-            "hook": hook_addr,
-            "owner": owner,
-            "name": name,
-            "mode": mode,
-            "created_at": created_at,
+            "hook": info[0],
+            "owner": info[1],
+            "name": info[2],
+            "mode": info[3],
+            "created_at": info[4],
         })
-        print(f"\n  [{i}] {name}")
-        print(f"      Hook:  {hook_addr}")
-        print(f"      Owner: {owner}")
-        print(f"      Mode:  {MODES.get(mode, '?')}")
+        print(f"  [{i}] {info[2]:30s} owner={info[1][:10]}... hook={info[0][:10]}...")
     except Exception as e:
-        print(f"\n  [{i}] Error reading agent: {e}")
+        print(f"  [{i}] ERROR reading agent: {e}")
 
-# ============================================================
-# PHASE 3: For each agent with TVL > 0 and alive, call simulateSwapFee
-# Also post status for operator-owned agents
-# ============================================================
-print(f"\n{'='*60}")
-print(f"⚡ PHASE 3: Process Live Agents (TVL > 0 & Alive)")
-print(f"{'='*60}")
+print()
+print("=" * 60)
+print("📋 AGENT DETAILS")
+print("=" * 60)
 
-nonce = w3.eth.get_transaction_count(wallet)
-gas_price = w3.eth.gas_price
-print(f"  Nonce start: {nonce} | Gas price: {gas_price} wei")
-
-scanned = []
-total_tvl = 0.0
-total_fees_simulated = 0
-total_msgs_posted = 0
-failed_agents = []
-
-for agent in all_agents:
+active_agents = []
+for a in all_agents:
+    hook_addr = a["hook"]
     try:
-        hook_contract = get_contract(agent["hook"])
-        info = hook_contract.functions.getAgentInfo().call()
-        tvl_eth = float(w3.from_wei(info[2], 'ether'))
-        alive = info[10]
-        agent_name = info[0]
-        depositors = info[5]
-        treasury_eth = float(w3.from_wei(info[3], 'ether'))
-        apy = 0
+        hook = w3.eth.contract(address=Web3.to_checksum_address(hook_addr), abi=HOOK_ABI)
+        agent_info = hook.functions.getAgentInfo().call()
+        tvl_wei = agent_info[2]
+        alive = agent_info[10]
+        treasury_wei = agent_info[3]
+        total_fees_wei = agent_info[4]
+        dep_count = agent_info[5]
+        msg_count = agent_info[6]
+        mode_val = agent_info[7]
+        fee_bps = agent_info[8]
+        liquidity = agent_info[9]
+        name = agent_info[0]
+
+        tvl_eth = float(w3.from_wei(tvl_wei, 'ether'))
+        treasury_eth = float(w3.from_wei(treasury_wei, 'ether'))
+        total_fees_eth = float(w3.from_wei(total_fees_wei, 'ether'))
+
+        # Get APY
+        apy_bps = 0
         try:
-            apy = hook_contract.functions.estimatedAPY().call() / 100
+            apy_bps = hook.functions.estimatedAPY().call()
         except:
             pass
 
-        print(f"\n  [{agent['index']}] {agent_name}")
-        print(f"      TVL: {tvl_eth:.4f} ETH | Alive: {alive} | Treasury: {treasury_eth:.6f} ETH")
-        print(f"      Depositors: {depositors} | APY: {apy:.2f}%")
+        modes = {0: "Aggressive", 1: "Balanced", 2: "Conservative"}
+        mode_name = modes.get(mode_val, f"Unknown({mode_val})")
+        alive_str = "🟢 ALIVE" if alive else "🔴 DEAD"
 
-        is_operator = agent["owner"].lower() == OPERATOR_WALLET.lower()
-        print(f"      Operator-owned: {'YES' if is_operator else 'no'}")
+        print(f"\n{'─' * 50}")
+        print(f"Agent #{a['index']}: {name}")
+        print(f"  Hook:     {hook_addr}")
+        print(f"  Owner:    {a['owner']}")
+        print(f"  Status:   {alive_str}")
+        print(f"  Mode:     {mode_name}")
+        print(f"  Fee:      {fee_bps/100:.2f}%")
+        print(f"  TVL:      {tvl_eth:.6f} ETH")
+        print(f"  Treasury: {treasury_eth:.6f} ETH")
+        print(f"  Fees col: {total_fees_eth:.6f} ETH")
+        print(f"  Depositors: {dep_count}")
+        print(f"  Messages: {msg_count}")
+        print(f"  APY:      {apy_bps/100:.2f}%")
+        print(f"  Liq:      {liquidity}")
+
+        a.update({
+            "tvl_eth": tvl_eth,
+            "treasury_eth": treasury_eth,
+            "total_fees_eth": total_fees_eth,
+            "depositor_count": dep_count,
+            "msg_count": msg_count,
+            "mode_val": mode_val,
+            "mode_name": mode_name,
+            "fee_bps": fee_bps,
+            "alive": alive,
+            "apy_bps": apy_bps,
+            "liquidity": liquidity,
+        })
 
         if alive and tvl_eth > 0:
-            total_tvl += tvl_eth
-            sim_amount = int(tvl_eth * 0.001 * 1e18)
-            if sim_amount > 0:
-                print(f"      💸 simulateSwapFee({w3.from_wei(sim_amount, 'ether'):.6f} ETH) ...", end=" ")
-                tx_hash, result = simulate_fee(hook_contract, sim_amount, nonce, gas_price)
-                if tx_hash:
-                    print(f"✅ TX: {tx_hash[:20]}... gas: {result}")
-                    total_fees_simulated += 1
-                    scanned.append({
-                        "agent": agent_name,
-                        "hook": agent["hook"],
-                        "action": "simulateSwapFee",
-                        "amount_eth": w3.from_wei(sim_amount, 'ether'),
-                        "tx": tx_hash,
-                    })
-                    nonce += 1
-                else:
-                    print(f"❌ {result}")
-                    failed_agents.append(f"{agent_name}: simulateFee → {result}")
-
-            # Post status if operator-owned
-            if is_operator:
-                mode_name = MODES.get(agent["mode"], "Balanced")
-                msg = f"🤖 AgentYield Bot | {ts} | {agent_name} | TVL: {tvl_eth:.4f} ETH | APY: {apy:.2f}% | Mode: {mode_name} | Treasury: {treasury_eth:.6f} ETH | Depositors: {depositors}"
-                print(f"      📝 postMessage() ...", end=" ")
-                tx_hash, result = post_message(hook_contract, msg, nonce, gas_price)
-                if tx_hash:
-                    print(f"✅ TX: {tx_hash[:20]}... gas: {result}")
-                    total_msgs_posted += 1
-                    scanned.append({
-                        "agent": agent_name,
-                        "hook": agent["hook"],
-                        "action": "postMessage",
-                        "tx": tx_hash,
-                    })
-                    nonce += 1
-                else:
-                    print(f"❌ {result}")
-                    failed_agents.append(f"{agent_name}: postMessage → {result}")
-        else:
-            if not alive:
-                print(f"      ⏭️ Skipped: not alive")
-            else:
-                print(f"      ⏭️ Skipped: TVL = 0")
+            active_agents.append(a)
 
     except Exception as e:
-        print(f"      ❌ Error: {e}")
-        failed_agents.append(f"{agent['name']}: {str(e)[:80]}")
+        print(f"\n  Agent {hook_addr[:10]}... — ERROR: {e}")
 
-# ============================================================
-# SUMMARY
-# ============================================================
-print(f"\n{'='*60}")
-print(f"📋 FINAL SUMMARY — AgentYield Factory Bot")
-print(f"{'='*60}")
-print(f"  Timestamp:      {ts}")
-print(f"  Operator:       {wallet}")
-print(f"  Factory:        {FACTORY_ADDRESS}")
-print(f"  Total agents:   {agent_count}")
-print(f"  Total TVL:      {total_tvl:.4f} ETH")
+print(f"\n{'=' * 60}")
+print(f"🎯 ACTIVE AGENTS (alive + TVL > 0): {len(active_agents)}")
+print(f"{'=' * 60}")
 
-if target_actions:
-    print(f"\n  📍 Target Agent ({target_agent}):")
-    for a in target_actions:
-        print(f"     ✅ {a}")
+# ── Process each active agent ──
+results = []
+for a in active_agents:
+    hook_addr = a["hook"]
+    print(f"\n{'#' * 55}")
+    print(f"#  Processing: {a['name']}")
+    print(f"#  Hook:       {hook_addr}")
+    print(f"#  TVL:        {a['tvl_eth']:.6f} ETH")
+    print(f"{'#' * 55}")
 
-print(f"\n  📊 Factory Scan Actions:")
-print(f"     ✅ simulateSwapFee: {total_fees_simulated} agent(s)")
-print(f"     ✅ postMessage:     {total_msgs_posted} agent(s)")
+    hook = w3.eth.contract(address=Web3.to_checksum_address(hook_addr), abi=HOOK_ABI)
+    agent_result = {
+        "name": a["name"],
+        "hook": hook_addr,
+        "owner": a["owner"],
+        "tvl_eth": a["tvl_eth"],
+        "alive": a["alive"],
+        "actions": [],
+        "errors": [],
+    }
 
-if scanned:
-    print(f"\n  📋 Detailed Actions:")
-    for s in scanned:
-        if s["action"] == "simulateSwapFee":
-            print(f"     💸 {s['agent']}: simulateSwapFee({s['amount_eth']:.6f} ETH) → {s['tx'][:20]}...")
-        elif s["action"] == "postMessage":
-            print(f"     📝 {s['agent']}: postMessage() → {s['tx'][:20]}...")
+    nonce = w3.eth.get_transaction_count(wallet)
+    gas_price = w3.eth.gas_price
+    print(f"  Nonce: {nonce} | Gas price: {gas_price} wei")
 
-if failed_agents:
-    print(f"\n  ❌ Failures ({len(failed_agents)}):")
-    for f in failed_agents:
-        print(f"     ⚠️ {f}")
+    # 1. Simulate swap fee (0.1% of TVL)
+    sim_amount = int(a["tvl_eth"] * 0.001 * 1e18)
+    if sim_amount < 1000:
+        sim_amount = 1000  # minimum 1000 wei
 
-print(f"\n{'='*60}")
-print(f"✅ Bot cycle complete — {ts}")
-print(f"{'='*60}")
+    try:
+        sim_eth = float(w3.from_wei(sim_amount, 'ether'))
+        print(f"  💸 simulateSwapFee({sim_eth:.6f} ETH)...", end=" ")
+        tx = hook.functions.simulateSwapFee(sim_amount).build_transaction({
+            'from': wallet,
+            'nonce': nonce,
+            'gas': 200000,
+            'gasPrice': gas_price,
+            'chainId': CHAIN_ID,
+        })
+        signed = account.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        print(f"✅ TX: {tx_hash.hex()} (gas: {receipt['gasUsed']})")
+        agent_result["actions"].append(f"simulateSwapFee({sim_eth:.6f} ETH) → {tx_hash.hex()}")
+        nonce += 1
+    except Exception as e:
+        err = str(e)
+        print(f"❌ {err[:100]}")
+        agent_result["errors"].append(f"simulateSwapFee failed: {err}")
+
+    # 2. If treasury > 0.001 ETH, reinvest
+    if a["treasury_eth"] > 0.001:
+        try:
+            last_reinvest = hook.functions.lastReinvestTime().call()
+            cooldown = hook.functions.REINVEST_COOLDOWN().call()
+            now_ts = __import__('time').time()
+            if now_ts >= last_reinvest + cooldown:
+                print(f"  💸 reinvest() (treasury: {a['treasury_eth']:.6f} ETH)...", end=" ")
+                tx = hook.functions.reinvest().build_transaction({
+                    'from': wallet,
+                    'nonce': nonce,
+                    'gas': 300000,
+                    'gasPrice': gas_price,
+                    'chainId': CHAIN_ID,
+                })
+                signed = account.sign_transaction(tx)
+                tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+                receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+                print(f"✅ TX: {tx_hash.hex()} (gas: {receipt['gasUsed']})")
+                agent_result["actions"].append(f"reinvest() → {tx_hash.hex()}")
+                nonce += 1
+            else:
+                remaining = (last_reinvest + cooldown) - int(now_ts)
+                print(f"  ⏳ Reinvest cooldown: {remaining}s remaining — skipped")
+        except Exception as e:
+            err = str(e)
+            print(f"  ❌ reinvest failed: {err[:100]}")
+            agent_result["errors"].append(f"reinvest failed: {err}")
+
+    # 3. Post status message if owned by operator
+    if a["owner"].lower() == Web3.to_checksum_address(OPERATOR).lower():
+        ts = __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M UTC')
+        apy_pct = a["apy_bps"] / 100
+        mode_name = a["mode_name"]
+        msg = f"🤖 AgentYield | {ts} | TVL: {a['tvl_eth']:.4f} ETH | APY: {apy_pct:.2f}% | Mode: {mode_name} | Treasury: {a['treasury_eth']:.6f} ETH | Depositors: {a['depositor_count']}"
+        try:
+            print(f"  📝 postMessage()...", end=" ")
+            tx = hook.functions.postMessage(msg).build_transaction({
+                'from': wallet,
+                'nonce': nonce,
+                'gas': 200000,
+                'gasPrice': gas_price,
+                'chainId': CHAIN_ID,
+            })
+            signed = account.sign_transaction(tx)
+            tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+            w3.eth.wait_for_transaction_receipt(tx_hash)
+            print(f"✅ TX: {tx_hash.hex()}")
+            agent_result["actions"].append(f"postMessage(status) → {tx_hash.hex()}")
+            nonce += 1
+        except Exception as e:
+            err = str(e)
+            print(f"  ❌ postMessage failed: {err[:100]}")
+            agent_result["errors"].append(f"postMessage failed: {err}")
+
+    results.append(agent_result)
+
+# ── Summary ──
+print(f"\n{'=' * 60}")
+print("📊 FINAL SUMMARY")
+print(f"{'=' * 60}")
+print(f"Factory:      {FACTORY_ADDRESS}")
+print(f"Total agents: {count}")
+print(f"Active (TVL>0): {len(active_agents)}")
+print(f"Operator:     {wallet}")
+print()
+
+for r in results:
+    status = "✅" if not r["errors"] else "⚠️"
+    print(f"{status} {r['name']:25s} | TVL: {r['tvl_eth']:.4f} ETH | Hook: {r['hook'][:10]}...")
+    for a in r["actions"]:
+        print(f"   └─ ✅ {a}")
+    for e in r["errors"]:
+        print(f"   └─ ❌ {e}")
+    print()
+
+# Also run the specific agent bot for the known deposit agent
+print(f"\n{'=' * 60}")
+print("🤖 RUNNING SPECIFIC AGENT BOT FOR 0x5aFa80D2f9aed30A0240d7Aa3A69D21C7328D55b")
+print(f"{'=' * 60}")
+print()
+sys.stdout.flush()
+
+# Now run the existing bot script for the specific agent too
+import subprocess
+result = subprocess.run(
+    [sys.executable, "scripts/agent-bot.py", "--agent", "0x5aFa80D2f9aed30A0240d7Aa3A69D21C7328D55b"],
+    capture_output=True, text=True, timeout=120
+)
+bot_output = result.stdout + "\n" + result.stderr
+print(bot_output)
+
+print(f"\n{'=' * 60}")
+print("🏁 FACTORY BOT COMPLETE")
+print(f"{'=' * 60}")

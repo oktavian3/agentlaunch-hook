@@ -78,6 +78,7 @@ contract AgentYieldHook is IHooks {
     event ModeChanged(StrategyMode oldMode, StrategyMode newMode);
     event AgentMessagePosted(string content, uint256 timestamp);
     event AliveSet(bool status, uint256 timestamp);
+    event AutoTradeExecuted(address indexed user, uint256 amount, uint256 percentage, uint256 yieldGenerated);
     event TreasuryDeposited(uint256 amount);
     event SwapFeeSimulated(uint256 amount);
 
@@ -222,6 +223,37 @@ contract AgentYieldHook is IHooks {
         treasuryBalance += amount;
         totalFeesCollected += amount;
         emit SwapFeeSimulated(amount);
+    }
+
+    /// @notice User triggers auto-trade on their deposited amount
+    /// @dev Percentage: 1-100 (% of user's deposit to simulate trade)
+    ///      The agent "trades" by generating simulated yield (swap fee simulation)
+    ///      proportional to the traded amount. Trade generates 0.1%-5% yield randomly.
+    function autoTrade(uint256 percentage) external {
+        require(percentage > 0 && percentage <= 100, "AY: invalid %");
+        VaultShare storage depositor = depositors[msg.sender];
+        require(depositor.amount > 0, "AY: no deposit");
+
+        uint256 tradeAmount = (depositor.amount * percentage) / 100;
+        require(tradeAmount > 0, "AY: amount too small");
+
+        // Simulated trade yield: 0.5%-3% return on traded amount
+        uint256 yieldGenerated = (tradeAmount * (500 + uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 2500)) / 10000;
+        treasuryBalance += yieldGenerated;
+        totalFeesCollected += yieldGenerated;
+
+        emit AutoTradeExecuted(msg.sender, tradeAmount, percentage, yieldGenerated);
+    }
+
+    /// @notice Get auto-trade preview: how much yield a trade would generate
+    function previewAutoTrade(uint256 percentage, address user) external view returns (uint256 tradeAmount, uint256 estimatedYield) {
+        VaultShare storage depositor = depositors[user];
+        if (depositor.amount == 0 || percentage == 0 || percentage > 100) return (0, 0);
+        tradeAmount = (depositor.amount * percentage) / 100;
+        if (tradeAmount == 0) return (0, 0);
+        // Average yield ~1.5%
+        estimatedYield = (tradeAmount * 150) / 10000;
+        return (tradeAmount, estimatedYield);
     }
 
     function setMode(StrategyMode _newMode) external onlyAgent {
