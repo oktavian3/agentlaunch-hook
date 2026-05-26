@@ -211,9 +211,9 @@ header{
 
   <!-- Tabs -->
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('create')">CREATE</div>
-    <div class="tab" onclick="switchTab('agents')">EXPLORE</div>
-    <div class="tab" onclick="switchTab('about')">ABOUT</div>
+    <div class="tab active" onclick="switchTab('create')" id="tab-create">CREATE</div>
+    <div class="tab" onclick="switchTab('agents')" id="tab-agents">EXPLORE</div>
+    <div class="tab" onclick="switchTab('about')" id="tab-about">ABOUT</div>
   </div>
 
   <!-- TAB: CREATE AGENT -->
@@ -401,10 +401,12 @@ async function connectWallet() {
 
 // ── TAB SWITCHING ─────────────────────────────────
 function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const tabMap={'create':0,'agents':1,'about':2};
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',tabMap[name]===i);
+  });
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  document.getElementById('panel-'+name).classList.add('active');
+  document.getElementById('panel-'+name)?.classList.add('active');
 }
 
 // ── CREATE AGENT ──────────────────────────────────
