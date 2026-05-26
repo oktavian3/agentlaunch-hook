@@ -19,13 +19,17 @@ contract AgentYieldHookTest is Test {
     IPoolManager public poolManager = IPoolManager(address(0x100));
 
     function setUp() public {
+        vm.deal(user1, 10000 ether);
+        vm.deal(user2, 10000 ether);
         vm.prank(deployer);
-        hook = new AgentYieldHook(
-            poolManager,
-            agentWallet,
-            "TestYieldAgent",
-            AgentYieldHook.StrategyMode.Balanced
-        );
+        hook = new AgentYieldHook(poolManager, agentWallet, "TestYieldAgent", AgentYieldHook.StrategyMode.Balanced);
+    }
+
+    // Helper: deposit with ETH
+    function _deposit(address user, uint256 amount) internal {
+        vm.deal(user, amount);
+        vm.prank(user);
+        hook.deposit{value: amount}(amount);
     }
 
     // ============================================================
@@ -68,8 +72,7 @@ contract AgentYieldHookTest is Test {
     // ============================================================
 
     function test_Deposit() public {
-        vm.prank(user1);
-        hook.deposit(100 ether);
+        _deposit(user1, 100 ether);
 
         (uint256 amount,) = hook.getDepositorInfo(user1);
         assertEq(amount, 99.9 ether);
@@ -77,11 +80,9 @@ contract AgentYieldHookTest is Test {
     }
 
     function test_DepositTwoUsers() public {
-        vm.prank(user1);
-        hook.deposit(100 ether);
+        _deposit(user1, 100 ether);
 
-        vm.prank(user2);
-        hook.deposit(50 ether);
+        _deposit(user2, 50 ether);
 
         assertEq(hook.getDepositorCount(), 2);
         assertEq(hook.totalDeposits(), 149.85 ether);
@@ -99,8 +100,7 @@ contract AgentYieldHookTest is Test {
     // ============================================================
 
     function test_Withdraw() public {
-        vm.prank(user1);
-        hook.deposit(100 ether);
+        _deposit(user1, 100 ether);
 
         vm.prank(user1);
         hook.withdraw(0);
@@ -116,8 +116,7 @@ contract AgentYieldHookTest is Test {
     }
 
     function test_Withdraw_RevertsOnExcess() public {
-        vm.prank(user1);
-        hook.deposit(100 ether);
+        _deposit(user1, 100 ether);
 
         vm.prank(user1);
         vm.expectRevert(bytes("AY: exceeds balance"));
@@ -201,15 +200,13 @@ contract AgentYieldHookTest is Test {
     // ============================================================
 
     function test_DepositCreatesTreasury() public {
-        vm.prank(user1);
-        hook.deposit(1000 ether);
+        _deposit(user1, 1000 ether);
         assertTrue(hook.treasuryBalance() > 0);
         assertEq(hook.treasuryBalance(), 1 ether);
     }
 
     function test_Reinvest() public {
-        vm.prank(user1);
-        hook.deposit(1000 ether);
+        _deposit(user1, 100 ether);
         assertTrue(hook.treasuryBalance() > 0);
 
         vm.warp(block.timestamp + hook.REINVEST_COOLDOWN() + 1);
@@ -220,8 +217,7 @@ contract AgentYieldHookTest is Test {
     }
 
     function test_Reinvest_RevertsFromNonAgent() public {
-        vm.prank(user1);
-        hook.deposit(1000 ether);
+        _deposit(user1, 100 ether);
         vm.warp(block.timestamp + hook.REINVEST_COOLDOWN() + 1);
         vm.prank(user1);
         vm.expectRevert(bytes("AY: not agent"));
@@ -235,8 +231,7 @@ contract AgentYieldHookTest is Test {
     }
 
     function test_Reinvest_RevertsOnCooldown() public {
-        vm.prank(user1);
-        hook.deposit(1000 ether);
+        _deposit(user1, 100 ether);
         vm.prank(agentWallet);
         vm.expectRevert(bytes("AY: cooldown"));
         hook.reinvest();
@@ -298,9 +293,9 @@ contract AgentYieldHookTest is Test {
         vm.prank(agentWallet);
         hook.setAlive(false);
 
-        vm.prank(user1);
         vm.expectRevert(bytes("AY: not alive"));
-        hook.deposit(100 ether);
+        vm.prank(user1);
+        hook.deposit{value: 100 ether}(100 ether);
     }
 
     // ============================================================

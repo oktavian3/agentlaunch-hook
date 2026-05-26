@@ -126,8 +126,9 @@ contract AgentYieldHook is IHooks {
     // User Actions
     // ============================================================
 
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external payable {
         require(amount > 0, "AY: zero amount");
+        require(msg.value == amount, "AY: value mismatch");
         require(alive, "AY: not alive");
 
         uint256 depositFee = (amount * DEPOSIT_FEE_BPS) / FEE_DENOM;
