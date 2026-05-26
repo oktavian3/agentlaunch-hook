@@ -17,7 +17,7 @@ from web3 import Web3
 
 RPC = os.getenv("XLAYER_RPC_URL", "https://rpc.xlayer.tech")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY", "")
-FACTORY_ADDRESS = os.getenv("FACTORY_ADDRESS", "0x74A25c7831EB3EC76402392fD394eEd31F218BCB")
+FACTORY_ADDRESS = os.getenv("FACTORY_ADDRESS", "0x80bfBc37E3c17C407fd142cE6FB561EC421A7336")
 CHAIN_ID = 196
 OPERATOR = "0x9D15099886F62E273eF88E17c2E53AE7f9144403"
 
@@ -37,6 +37,7 @@ HOOK_ABI = json.loads(json.dumps([
     {"inputs":[{"name":"_newLower","type":"int24"},{"name":"_newUpper","type":"int24"}],"name":"rebalancePosition","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[],"name":"estimatedAPY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"inputs":[{"name":"amount","type":"uint256"}],"name":"simulateSwapFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[],"name":"autoCompound","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[],"name":"getAgentInfo","outputs":[{"name":"name","type":"string"},{"name":"wallet","type":"address"},{"name":"tvl","type":"uint256"},{"name":"treasury","type":"uint256"},{"name":"totalFees","type":"uint256"},{"name":"depositorCount","type":"uint256"},{"name":"msgCount","type":"uint256"},{"name":"mode","type":"uint8"},{"name":"fee","type":"uint24"},{"name":"liquidity","type":"uint128"},{"name":"alive","type":"bool"}],"stateMutability":"view","type":"function"},
     {"inputs":[],"name":"getMessageCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"inputs":[{"name":"index","type":"uint256"}],"name":"getMessage","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},

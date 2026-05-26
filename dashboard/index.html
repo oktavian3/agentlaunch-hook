@@ -618,7 +618,7 @@ async function lookupAgent() {
     const alive=info[10];
 
     let apy='0';
-    try{const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2)}catch(e){}
+    try{const a=await hook.estimatedAPY();apy=Math.min(Number(a)/100, 35).toFixed(2)}catch(e){}
     const apyDisplay = apy==='0.00'||apy==='0'?'<span style="color:#555">— awaiting yield</span>':apy+'%';
 
     let msgsHtml='';
@@ -832,7 +832,7 @@ async function loadAllAgents() {
         const info=await hook.getAgentInfo();
         tvl=ethers.formatEther(info[2]);
         tvl=(Number(tvl)).toFixed(4);
-        try{const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2)}catch(e){}
+        try{const a=await hook.estimatedAPY();apy=Math.min(Number(a)/100, 35).toFixed(2)}catch(e){}
         if(apy==='0.00')apy='awaiting';
         if(!info[10])status='🔴';
         // Check personal deposit if wallet connected

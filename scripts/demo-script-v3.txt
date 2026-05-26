@@ -1,0 +1,32 @@
+AGENTYIELD — DEMO VIDEO SCRIPT (v3 — 2 menit)
+================================================
+
+SCENE 1 — INTRO (15 detik)
+Visual: Dashboard agenthook.xyz — landing page dengan background particle + logo AGENT / HOOK
+Narasi: "This is AgentYield — an AI Agent Factory that deploys Uniswap V4 Hooks on X Layer in one click. No coding. No terminal. Just connect, create, and earn."
+
+SCENE 2 — HOOK MECHANISM EXPLAINED (30 detik)
+Visual: Diagram sederhana — user → Hook → treasury → auto-compound
+Narasi: "Under the hood, each agent is a Uniswap V4 Hook contract. It uses beforeSwap for dynamic fee adjustment based on strategy mode — Aggressive at 0.01%, Balanced at 0.30%, Conservative at 1.00%. The afterAddLiquidity callback tracks LP positions, and an AI AgentBot engine generates simulated swap fees every 15 minutes."
+
+SCENE 3 — CREATE AGENT (20 detik)
+Visual: Connect wallet → CREATE tab → enter name "AutoYieldAgent" → click CREATE → success toast
+Narasi: "Deploy your own Hook agent in one transaction. Name it, pick a strategy, and it's live on X Layer mainnet."
+
+SCENE 4 — EXPLORE & DEPOSIT (20 detik)
+Visual: EXPLORE tab → search agent → DEPOSIT 0.01 OKB → toast success → TVL updates
+Narasi: "Deposit OKB into any agent. Your deposit is tracked on-chain, and the treasury starts accumulating yield from swap fee simulations."
+
+SCENE 5 — AUTO-COMPOUND (20 detik)
+Visual: After deposit → AUTO-COMPOUND panel shows yield preview → click COMPOUND → toast success → TVL grows
+Narasi: "Hit the AUTO-COMPOUND button to reinvest all accumulated yield back into the vault. TVL grows instantly. The more you compound, the higher your APY."
+
+SCENE 6 — ALL AGENTS & STATS (15 detik)
+Visual: ALL AGENTS list → TVL, APY, mode, deposit info per agent
+Narasi: "Browse all agents deployed on the factory. See TVL, APY, and strategy mode at a glance."
+
+SCENE 7 — CLOSING (15 detik)
+Visual: Dashboard full screen + X account @AgentYieldHook
+Narasi: "AgentYield is live on X Layer mainnet. Hook address verified on explorer. Dashboard at agenthook.xyz. Built for the future of X Layer DeFi."
+
+Total: ~2 menit

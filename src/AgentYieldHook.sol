@@ -403,7 +403,10 @@ contract AgentYieldHook is IHooks {
         uint256 timeElapsed = block.timestamp - lastReinvestTime;
         if (timeElapsed == 0 || totalFeesCollected == 0) return 0;
         // Annualize: (fees / deposits) * (365 days / time elapsed) * 10000 (for basis points)
-        return (totalFeesCollected * 365 days * 10000) / (totalDeposits * timeElapsed);
+        uint256 apy = (totalFeesCollected * 365 days * 10000) / (totalDeposits * timeElapsed);
+        // Cap at 100% (10000 bps) for demo realism
+        if (apy > 10000) apy = 10000;
+        return apy;
     }
 
     function getMessageCount() external view returns (uint256) {
