@@ -59,6 +59,7 @@ HOOK_ABI = json.dumps([
     {"inputs":[{"name":"_newMode","type":"uint8"}],"name":"setMode","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"name":"_newLower","type":"int24"},{"name":"_newUpper","type":"int24"}],"name":"rebalancePosition","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[],"name":"estimatedAPY","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"name":"amount","type":"uint256"}],"name":"simulateSwapFee","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[],"name":"getAgentInfo","outputs":[{"name":"name","type":"string"},{"name":"wallet","type":"address"},{"name":"tvl","type":"uint256"},{"name":"treasury","type":"uint256"},{"name":"totalFees","type":"uint256"},{"name":"depositorCount","type":"uint256"},{"name":"msgCount","type":"uint256"},{"name":"mode","type":"uint8"},{"name":"fee","type":"uint24"},{"name":"liquidity","type":"uint128"},{"name":"alive","type":"bool"}],"stateMutability":"view","type":"function"},
     {"inputs":[],"name":"getMessageCount","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"inputs":[{"name":"index","type":"uint256"}],"name":"getMessage","outputs":[{"name":"","type":"string"}],"stateMutability":"view","type":"function"},
@@ -156,7 +157,15 @@ class AgentYieldBot:
 
         decisions = []
 
-        # Decision 1: Reinvest?
+        # Decision 1: Simulate swap fee (generate yield for APY)
+        if state.get("tvl_eth", 0) > 0:
+            # Simulate daily yield ~0.1% of TVL per cycle
+            sim_amount = int(state["tvl_eth"] * 0.001 * 1e18)
+            if sim_amount > 0:
+                decisions.append(("simulate_fee", sim_amount))
+                self.log(f"💸 Simulate swap fee: {self.w3.from_wei(sim_amount, 'ether'):.6f} ETH")
+
+        # Decision 2: Reinvest?
         if state.get("treasury_eth", 0) > 0.001:  # Min 0.001 ETH
             can_reinvest = True
             try:
@@ -193,13 +202,36 @@ class AgentYieldBot:
         gas_price = self.w3.eth.gas_price
 
         for decision in decisions:
-            if decision == "reinvest":
+            if isinstance(decision, tuple):
+                cmd, amount = decision
+                if cmd == "simulate_fee":
+                    self._do_simulate_fee(amount, nonce, gas_price)
+                    nonce += 1
+            elif decision == "reinvest":
                 self._do_reinvest(nonce, gas_price)
                 nonce += 1
 
             elif decision == "post_status":
                 self._do_post_status(state, nonce, gas_price)
                 nonce += 1
+
+    def _do_simulate_fee(self, amount, nonce, gas_price):
+        if not self.hook:
+            return
+        try:
+            tx = self.hook.functions.simulateSwapFee(amount).build_transaction({
+                'from': self.wallet,
+                'nonce': nonce,
+                'gas': 150000,
+                'gasPrice': gas_price,
+                'chainId': CHAIN_ID,
+            })
+            signed = self.account.sign_transaction(tx)
+            tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
+            self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            self.action(f"Simulated fee ✅ {self.w3.from_wei(amount, 'ether'):.6f} ETH → treasury")
+        except Exception as e:
+            self.log(f"❌ Simulate fee failed: {e}")
 
     def _do_reinvest(self, nonce, gas_price):
         if not self.hook:

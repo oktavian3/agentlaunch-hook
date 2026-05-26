@@ -79,6 +79,7 @@ contract AgentYieldHook is IHooks {
     event AgentMessagePosted(string content, uint256 timestamp);
     event AliveSet(bool status, uint256 timestamp);
     event TreasuryDeposited(uint256 amount);
+    event SwapFeeSimulated(uint256 amount);
 
     // ============================================================
     // Modifiers
@@ -202,6 +203,19 @@ contract AgentYieldHook is IHooks {
         emit TreasuryDeposited(amount);
     }
 
+    /// @notice Simulates swap fee collection for APY calculation (demo purpose)
+    /// @dev Only callable by agent wallet. Adds fees proportional to totalDeposits
+    ///      to simulate realistic yield. Amount in wei (1e15 = 0.001 ETH = ~daily yield on 0.01 ETH).
+    function simulateSwapFee(uint256 amount) external onlyAgent {
+        require(amount > 0, "AY: zero amount");
+        require(totalDeposits > 0, "AY: no deposits");
+        // Keep simulated swap fees reasonable: max 1% of totalDeposits per call
+        require(amount <= (totalDeposits * 100) / FEE_DENOM, "AY: fee too large");
+        treasuryBalance += amount;
+        totalFeesCollected += amount;
+        emit SwapFeeSimulated(amount);
+    }
+
     function setMode(StrategyMode _newMode) external onlyAgent {
         StrategyMode old = mode;
         mode = _newMode;
@@ -283,13 +297,14 @@ contract AgentYieldHook is IHooks {
     }
 
     function beforeSwap(
-        address, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata
+        address, PoolKey calldata, IPoolManager.SwapParams calldata, bytes calldata
     ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
-        return (IHooks.beforeSwap.selector, BeforeSwapDelta.wrap(0), 0);
+        return (IHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, fee);
     }
 
     function afterSwap(
-        address, PoolKey calldata, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata
+        address, PoolKey calldata, IPoolManager.SwapParams calldata,
+        BalanceDelta, bytes calldata
     ) external override onlyPoolManager returns (bytes4, int128) {
         return (IHooks.afterSwap.selector, 0);
     }
@@ -307,7 +322,7 @@ contract AgentYieldHook is IHooks {
     }
 
     // ============================================================
-    // View Functions
+    // Views
     // ============================================================
 
     function getAgentInfo() external view returns (
@@ -318,7 +333,7 @@ contract AgentYieldHook is IHooks {
         uint256 totalFees,
         uint256 depositorCount,
         uint256 msgCount,
-        StrategyMode _mode,
+        uint8 _mode,
         uint24 _fee,
         uint128 liquidity,
         bool _alive
@@ -331,11 +346,24 @@ contract AgentYieldHook is IHooks {
             totalFeesCollected,
             depositorList.length,
             agentMessages.length,
-            mode,
+            uint8(mode),
             fee,
             currentLiquidity,
             alive
         );
+    }
+
+    function getDepositorInfo(address user) external view returns (uint256 amount, uint256 depositedAt) {
+        VaultShare storage s = depositors[user];
+        return (s.amount, s.depositedAt);
+    }
+
+    function estimatedAPY() external view returns (uint256) {
+        if (totalDeposits == 0) return 0;
+        uint256 timeElapsed = block.timestamp - lastReinvestTime;
+        if (timeElapsed == 0 || totalFeesCollected == 0) return 0;
+        // Annualize: (fees / deposits) * (365 days / time elapsed) * 10000 (for basis points)
+        return (totalFeesCollected * 365 days * 10000) / (totalDeposits * timeElapsed);
     }
 
     function getMessageCount() external view returns (uint256) {
@@ -347,27 +375,8 @@ contract AgentYieldHook is IHooks {
         return agentMessages[index];
     }
 
-    function getAllMessages() external view returns (string[] memory) {
-        return agentMessages;
-    }
-
     function getDepositorCount() external view returns (uint256) {
         return depositorList.length;
-    }
-
-    function getDepositorInfo(address user) external view returns (uint256 amount, uint256 depositedAt) {
-        VaultShare storage s = depositors[user];
-        return (s.amount, s.depositedAt);
-    }
-
-    function estimatedAPY() external view returns (uint256) {
-        if (totalDeposits == 0) return 0;
-        uint256 period = block.timestamp - depositorList.length > 0 ? depositorList.length : 1;
-        if (period == 0) return 0;
-        // Simplified APY: totalFees / totalDeposits * (365 days / time elapsed)
-        uint256 timeElapsed = block.timestamp - lastReinvestTime;
-        if (timeElapsed == 0 || totalFeesCollected == 0) return 0;
-        return (totalFeesCollected * 365 days * 10000) / (totalDeposits * timeElapsed);
     }
 
     // ============================================================
@@ -385,34 +394,26 @@ contract AgentYieldHook is IHooks {
             currentTickLower = -100;
             currentTickUpper = 100;
         } else if (_mode == StrategyMode.Balanced) {
-            currentTickLower = -600;
-            currentTickUpper = 600;
+            currentTickLower = -500;
+            currentTickUpper = 500;
         } else {
-            currentTickLower = -2000;
-            currentTickUpper = 2000;
+            currentTickLower = -5000;
+            currentTickUpper = 5000;
         }
     }
 
-    function _calculateYield(address user, uint256 withdrawAmount) internal view returns (uint256) {
-        VaultShare storage share = depositors[user];
-        if (totalFeesCollected == 0 || totalDeposits == 0) return 0;
-
-        uint256 userShareBps = (share.amount * 10000) / totalDeposits;
-        uint256 yieldAmount = (totalFeesCollected * userShareBps) / 10000;
-
-        if (withdrawAmount < share.amount) {
-            yieldAmount = (yieldAmount * withdrawAmount) / share.amount;
-        }
-
-        return yieldAmount;
+    function _calculateYield(address user, uint256 amount) internal view returns (uint256) {
+        if (totalDeposits == 0) return 0;
+        return (totalFeesCollected * amount) / totalDeposits;
     }
 
     function _removeDepositor(address user) internal {
-        for (uint256 i = 0; i < depositorList.length; i++) {
+        uint256 len = depositorList.length;
+        for (uint256 i = 0; i < len; i++) {
             if (depositorList[i] == user) {
-                depositorList[i] = depositorList[depositorList.length - 1];
+                depositorList[i] = depositorList[len - 1];
                 depositorList.pop();
-                return;
+                break;
             }
         }
     }

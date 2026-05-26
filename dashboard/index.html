@@ -45,9 +45,22 @@ header{
 .wallet-btn{
   padding:10px 20px;background:rgba(255,255,255,.05);border:1px solid #333;
   color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  cursor:pointer;transition:.2s
+  cursor:pointer;transition:.2s;min-width:140px;text-align:center
 }
 .wallet-btn:hover{background:rgba(255,255,255,.1);border-color:#555}
+.wallet-container{position:relative;display:inline-block}
+.wallet-dropdown{
+  position:absolute;top:100%;right:0;margin-top:4px;min-width:200px;
+  background:rgba(10,10,10,.98);border:1px solid #262626;
+  backdrop-filter:blur(12px);display:none;z-index:100
+}
+.wallet-dropdown.show{display:block}
+.wallet-dropdown-item{
+  padding:12px 16px;font-size:12px;color:#888;cursor:pointer;
+  transition:.15s;display:flex;align-items:center;gap:8px
+}
+.wallet-dropdown-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.wallet-dropdown-divider{height:1px;background:#1a1a1a;margin:0}
 
 /* Tags */
 .tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
@@ -195,7 +208,18 @@ header{
       <div class="logo-line"></div>
     </div>
     <div>
-      <button class="wallet-btn" onclick="connectWallet()" id="walletBtn">CONNECT WALLET</button>
+    <div class="wallet-container">
+      <button class="wallet-btn" onclick="toggleWallet()" id="walletBtn">CONNECT WALLET</button>
+      <div class="wallet-dropdown" id="walletDropdown">
+        <div class="wallet-dropdown-item" onclick="copyAddress()">
+          <span style="color:#0066b1">⎘</span> Copy Address
+        </div>
+        <div class="wallet-dropdown-divider"></div>
+        <div class="wallet-dropdown-item" onclick="disconnectWallet()">
+          <span style="color:#e22718">✕</span> Disconnect
+        </div>
+      </div>
+    </div>
     </div>
   </header>
 
@@ -417,6 +441,11 @@ function showToast(msg,type,link){
 }
 
 // ── WALLET ─────────────────────────────────────────
+let account=null;
+let provider=null;
+let signer=null;
+let factoryContract=null;
+
 async function connectWallet() {
   if(typeof window.ethereum==='undefined'){document.getElementById('walletBtn').textContent='INSTALL METAMASK';return}
   try{
@@ -459,6 +488,43 @@ async function connectWallet() {
     }
   }catch(e){console.error(e)}
 }
+
+function toggleWallet() {
+  if(!account){connectWallet();return}
+  const dd=document.getElementById('walletDropdown');
+  dd.classList.toggle('show');
+}
+
+function copyAddress() {
+  if(!account)return;
+  navigator.clipboard.writeText(account).then(()=>{
+    const btn=document.getElementById('walletBtn');
+    const orig=btn.textContent;
+    btn.textContent='✅ COPIED!';
+    setTimeout(()=>btn.textContent=orig,1500);
+  });
+  document.getElementById('walletDropdown').classList.remove('show');
+}
+
+function disconnectWallet() {
+  account=null;
+  provider=null;
+  signer=null;
+  factoryContract=null;
+  document.getElementById('walletBtn').textContent='CONNECT WALLET';
+  document.getElementById('statStatus').textContent='⚪ DISCONNECTED';
+  document.getElementById('statStatusSub').textContent='connect wallet';
+  document.getElementById('walletDropdown').classList.remove('show');
+  loadAllAgents();
+}
+
+// Close dropdown on click outside
+document.addEventListener('click',function(e){
+  const c=document.querySelector('.wallet-container');
+  if(c&&!c.contains(e.target)){
+    document.getElementById('walletDropdown')?.classList.remove('show');
+  }
+});
 
 // ── TAB SWITCHING ─────────────────────────────────
 function switchTab(name){
@@ -523,6 +589,7 @@ async function lookupAgent() {
 
     let apy='0';
     try{const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2)}catch(e){}
+    const apyDisplay = apy==='0.00'||apy==='0'?'<span style="color:#555">— awaiting yield</span>':apy+'%';
 
     let msgsHtml='';
     try{
@@ -538,7 +605,7 @@ async function lookupAgent() {
         <div class="agent-meta">${addr.slice(0,10)}...${addr.slice(-6)}</div>
         <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
           <div><div style="font-size:9px;color:#555;text-transform:uppercase">TVL</div><div style="font-size:16px;color:#fff;font-weight:700">${parseFloat(tvl).toFixed(4)} ETH</div></div>
-          <div><div style="font-size:9px;color:#555;text-transform:uppercase">APY</div><div style="font-size:16px;color:#fff;font-weight:700">${apy}%</div></div>
+          <div><div style="font-size:9px;color:#555;text-transform:uppercase">APY</div><div style="font-size:16px;color:#fff;font-weight:700">${apyDisplay}</div></div>
           <div><div style="font-size:9px;color:#555;text-transform:uppercase">Mode</div><div style="font-size:13px;color:#fff;font-weight:700">${MODE_NAMES[mode]}</div></div>
         </div>
         <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px;color:#666">
@@ -660,6 +727,7 @@ async function loadAllAgents() {
         tvl=ethers.formatEther(info[2]);
         tvl=(Number(tvl)).toFixed(4);
         try{const a=await hook.estimatedAPY();apy=(Number(a)/100).toFixed(2)}catch(e){}
+        if(apy==='0.00')apy='awaiting';
         if(!info[10])status='🔴';
       }catch(e){}
 
@@ -669,7 +737,7 @@ async function loadAllAgents() {
           <div class="agent-meta">${addr.slice(0,10)}...${addr.slice(-6)} · by ${owner.slice(0,6)}...${owner.slice(-4)}</div>
           <div style="margin-top:6px;font-size:11px;color:#666;display:flex;gap:16px">
             <span>TVL: <strong style="color:#fff">${tvl} ETH</strong></span>
-            <span>APY: <strong style="color:#fff">${apy}%</strong></span>
+            <span>APY: <strong style="color:#fff">${apy==='awaiting'?'<span style="color:#555">awaiting yield</span>':apy+'%'}</strong></span>
             <span>Mode: <strong style="color:#fff">${MODE_NAMES[mode]}</strong></span>
           </div>
         </div>

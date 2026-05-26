@@ -262,7 +262,7 @@ contract AgentYieldHookTest is Test {
     function test_GetAgentInfo() public {
         (string memory name, address wallet, uint256 tvl, uint256 treasury,
          uint256 totalFees, uint256 depCount, uint256 msgCount,
-         AgentYieldHook.StrategyMode _mode, uint24 _fee, uint128 liq, bool alive) = hook.getAgentInfo();
+         uint8 _mode, uint24 _fee, uint128 liq, bool alive) = hook.getAgentInfo();
 
         assertEq(name, "TestYieldAgent");
         assertEq(wallet, agentWallet);
@@ -271,10 +271,56 @@ contract AgentYieldHookTest is Test {
         assertEq(totalFees, 0);
         assertEq(depCount, 0);
         assertEq(msgCount, 0);
-        assertEq(uint8(_mode), uint8(AgentYieldHook.StrategyMode.Balanced));
+        assertEq(_mode, uint8(AgentYieldHook.StrategyMode.Balanced));
         assertEq(_fee, 30);
         assertEq(liq, 0);
         assertTrue(alive);
+    }
+
+    // ============================================================
+    // Simulate Swap Fee Tests
+    // ============================================================
+
+    function test_SimulateSwapFee() public {
+        _deposit(user1, 10 ether);
+        uint256 feeAmount = 0.01 ether; // 0.1% of 10 ETH
+        vm.prank(agentWallet);
+        hook.simulateSwapFee(feeAmount);
+
+        assertEq(hook.totalFeesCollected(), feeAmount);
+        assertEq(hook.treasuryBalance(), (10 ether * 10) / 10000 + feeAmount); // deposit fee + sim fee
+    }
+
+    function test_SimulateSwapFee_RevertsFromNonAgent() public {
+        _deposit(user1, 10 ether);
+        vm.prank(user1);
+        vm.expectRevert("AY: not agent");
+        hook.simulateSwapFee(0.01 ether);
+    }
+
+    function test_SimulateSwapFee_RevertsOnZero() public {
+        _deposit(user1, 10 ether);
+        vm.prank(agentWallet);
+        vm.expectRevert("AY: zero amount");
+        hook.simulateSwapFee(0);
+    }
+
+    function test_SimulateSwapFee_RevertsOnExcessive() public {
+        _deposit(user1, 10 ether);
+        vm.prank(agentWallet);
+        vm.expectRevert("AY: fee too large");
+        hook.simulateSwapFee(0.5 ether); // 5% > max 1%
+    }
+
+    function test_SimulateSwapFee_UpdatesAPY() public {
+        _deposit(user1, 10 ether);
+        vm.warp(block.timestamp + 1 days);
+
+        vm.prank(agentWallet);
+        hook.simulateSwapFee(0.01 ether); // 0.1% fee on 10 ETH
+
+        uint256 apy = hook.estimatedAPY();
+        assertTrue(apy > 0, "APY should be > 0 after simulated fees");
     }
 
     function test_GetMessages() public {
@@ -283,10 +329,9 @@ contract AgentYieldHookTest is Test {
         vm.prank(agentWallet);
         hook.postMessage("msg2");
 
-        string[] memory msgs = hook.getAllMessages();
-        assertEq(msgs.length, 2);
-        assertEq(msgs[0], "msg1");
-        assertEq(msgs[1], "msg2");
+        assertEq(hook.getMessageCount(), 2);
+        assertEq(hook.getMessage(0), "msg1");
+        assertEq(hook.getMessage(1), "msg2");
     }
 
     function test_Deposit_DisallowsWhenDead() public {
