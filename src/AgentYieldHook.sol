@@ -161,6 +161,14 @@ contract AgentYieldHook is IHooks {
         uint256 perfFee = (yieldEarned * PERFORMANCE_FEE_BPS) / FEE_DENOM;
         uint256 userYield = yieldEarned - perfFee;
 
+        // Guard: limit withdraw to available contract balance
+        uint256 available = address(this).balance;
+        uint256 totalOwed = amount + userYield;
+        if (totalOwed > available) {
+            userYield = available > amount ? available - amount : 0;
+            totalOwed = amount + userYield;
+        }
+
         share.amount -= amount;
         totalDeposits -= amount;
         treasuryBalance += perfFee;
@@ -168,7 +176,7 @@ contract AgentYieldHook is IHooks {
         emit Withdrawn(msg.sender, amount, userYield);
 
         // Send back ETH
-        (bool sent,) = payable(msg.sender).call{value: amount + userYield}("");
+        (bool sent,) = payable(msg.sender).call{value: totalOwed}("");
         require(sent, "AY: send failed");
 
         if (share.amount == 0) {

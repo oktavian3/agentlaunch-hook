@@ -653,7 +653,7 @@ async function withdrawFromAgent(addr) {
     showToast('✅ Withdrawn '+amount+' OKB! ','success','https://www.okx.com/explorer/xlayer/tx/'+tx.hash);
     lookupAgent();
   }catch(e){
-    status.textContent='❌ '+e.message.slice(0,100);
+    showToast('❌ Withdraw failed: '+e.message.slice(0,80),'error');
     console.error(e);
   }
 }
@@ -672,7 +672,7 @@ async function depositToAgent(addr) {
     showToast('✅ Deposited '+amount+' OKB! ','success','https://www.okx.com/explorer/xlayer/tx/'+tx.hash);
     lookupAgent();
   }catch(e){
-    status.textContent='❌ '+e.message.slice(0,100);
+    showToast('❌ Deposit failed: '+e.message.slice(0,80),'error');
     console.error(e);
   }
 }
