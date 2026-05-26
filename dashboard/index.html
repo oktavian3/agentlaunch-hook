@@ -241,7 +241,7 @@ header{
     <div class="stat-box">
       <div class="stat-label">Total TVL</div>
       <div class="stat-value" id="statTVL">—</div>
-      <div class="stat-sub">ETH deposited</div>
+      <div class="stat-sub">OKB deposited</div>
     </div>
     <div class="stat-box">
       <div class="stat-label">Your TVL</div>
@@ -341,7 +341,7 @@ header{
         <strong style="color:#fff">How it works:</strong><br>
         1. Anyone creates an agent in 1 click from this dashboard<br>
         2. The factory deploys a Hook + creates a V4 pool in 1 TX<br>
-        3. Users deposit ETH/LP tokens and earn auto-compound yield<br>
+        3. Users deposit OKB and earn auto-compound yield<br>
         4. An AI bot reinvests treasury fees for compound growth<br>
         5. Each agent has its own on-chain personality via messages
       </p>
@@ -601,7 +601,7 @@ async function lookupAgent() {
         <div class="agent-name">${MODE_EMOJIS[mode]} ${name}</div>
         <div class="agent-meta">${addr.slice(0,10)}...${addr.slice(-6)}</div>
         <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-          <div><div style="font-size:9px;color:#555;text-transform:uppercase">TVL</div><div style="font-size:16px;color:#fff;font-weight:700">${parseFloat(tvl).toFixed(4)} ETH</div></div>
+          <div><div style="font-size:9px;color:#555;text-transform:uppercase">TVL</div><div style="font-size:16px;color:#fff;font-weight:700">${parseFloat(tvl).toFixed(4)} OKB</div></div>
           <div><div style="font-size:9px;color:#555;text-transform:uppercase">APY</div><div style="font-size:16px;color:#fff;font-weight:700">${apyDisplay}</div></div>
           <div><div style="font-size:9px;color:#555;text-transform:uppercase">Mode</div><div style="font-size:13px;color:#fff;font-weight:700">${MODE_NAMES[mode]}</div></div>
         </div>
@@ -611,7 +611,7 @@ async function lookupAgent() {
           <div>Status: ${alive?'🟢 Alive':'🔴 Offline'}</div>
         </div>
         <div style="margin-top:8px;font-size:11px;color:#666">
-          Treasury: ${parseFloat(treasury).toFixed(6)} ETH · Total Fees: ${parseFloat(fees).toFixed(6)} ETH
+          Treasury: ${parseFloat(treasury).toFixed(6)} OKB · Total Fees: ${parseFloat(fees).toFixed(6)} OKB
         </div>
         <div style="margin-top:8px;font-size:10px;color:#555">
           Wallet: ${wallet.slice(0,10)}...${wallet.slice(-6)}
@@ -733,7 +733,7 @@ async function loadAllAgents() {
           <div class="agent-name">${status} ${name}</div>
           <div class="agent-meta">${addr.slice(0,10)}...${addr.slice(-6)} · by ${owner.slice(0,6)}...${owner.slice(-4)}</div>
           <div style="margin-top:6px;font-size:11px;color:#666;display:flex;gap:16px">
-            <span>TVL: <strong style="color:#fff">${tvl} ETH</strong></span>
+            <span>TVL: <strong style="color:#fff">${tvl} OKB</strong></span>
             <span>APY: <strong style="color:#fff">${apy==='awaiting'?'<span style="color:#555">awaiting yield</span>':apy+'%'}</strong></span>
             <span>Mode: <strong style="color:#fff">${MODE_NAMES[mode]}</strong></span>
           </div>
@@ -773,7 +773,7 @@ async function loadMyAgents(addr) {
             <div class="agent-name">${MODE_EMOJIS[Number(agent[3])]} ${agent[2]}</div>
             <div class="agent-meta">${agent[0].slice(0,10)}...${agent[0].slice(-6)}</div>
             <div style="margin-top:6px;font-size:11px;color:#666">
-              TVL: <strong style="color:#fff">${tvl} ETH</strong>
+              TVL: <strong style="color:#fff">${tvl} OKB</strong>
             </div>
             <div style="margin-top:8px;font-size:11px;color:#666">
               <a href="#" onclick="document.getElementById('explorerInput').value='${agent[0]}';switchTab('agents');lookupAgent();return false" style="color:#0066b1">View Details →</a>
