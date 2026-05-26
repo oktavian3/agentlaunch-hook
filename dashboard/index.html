@@ -644,7 +644,7 @@ async function loadAllAgents() {
   try{
     const rpc=new ethers.JsonRpcProvider(XLAYER_RPC);
     const factory=new ethers.Contract(FACTORY_ADDRESS,FACTORY_ABI,rpc);
-    const count=await factory.getAgentCount();
+    let count=Number(await factory.getAgentCount());
     if(count==0){container.innerHTML='<div class="loading">No agents deployed yet</div>';return}
 
     let html='';
