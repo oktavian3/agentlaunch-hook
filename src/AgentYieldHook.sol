@@ -78,7 +78,7 @@ contract AgentYieldHook is IHooks {
     event ModeChanged(StrategyMode oldMode, StrategyMode newMode);
     event AgentMessagePosted(string content, uint256 timestamp);
     event AliveSet(bool status, uint256 timestamp);
-    event AutoTradeExecuted(address indexed user, uint256 amount, uint256 percentage, uint256 yieldGenerated);
+    event Compounded(uint256 amount, uint256 newTotalDeposits, uint256 timestamp);
     event TreasuryDeposited(uint256 amount);
     event SwapFeeSimulated(uint256 amount);
 
@@ -225,35 +225,35 @@ contract AgentYieldHook is IHooks {
         emit SwapFeeSimulated(amount);
     }
 
-    /// @notice User triggers auto-trade on their deposited amount
-    /// @dev Percentage: 1-100 (% of user's deposit to simulate trade)
-    ///      The agent "trades" by generating simulated yield (swap fee simulation)
-    ///      proportional to the traded amount. Trade generates 0.1%-5% yield randomly.
-    function autoTrade(uint256 percentage) external {
-        require(percentage > 0 && percentage <= 100, "AY: invalid %");
-        VaultShare storage depositor = depositors[msg.sender];
-        require(depositor.amount > 0, "AY: no deposit");
+    /// @notice User triggers auto-compound: reinvests treasury into their deposit
+    /// @dev Takes any available yield from treasury and adds it to the user's deposit
+    ///      and totalDeposits (TVL). Shows immediate TVL growth.
+    function autoCompound() external {
+        require(totalDeposits > 0, "AY: no deposits");
+        uint256 yieldAvailable = treasuryBalance;
+        require(yieldAvailable > 0, "AY: no yield to compound");
 
-        uint256 tradeAmount = (depositor.amount * percentage) / 100;
-        require(tradeAmount > 0, "AY: amount too small");
+        // Move treasury into deposits (simulate compounding)
+        totalDeposits += yieldAvailable;
+        treasuryBalance = 0;
+        lastReinvestTime = block.timestamp;
 
-        // Simulated trade yield: 0.5%-3% return on traded amount
-        uint256 yieldGenerated = (tradeAmount * (500 + uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 2500)) / 10000;
-        treasuryBalance += yieldGenerated;
-        totalFeesCollected += yieldGenerated;
+        // Also credit depositors proportionally
+        uint256 len = depositorList.length;
+        for (uint256 i = 0; i < len; i++) {
+            address depositor = depositorList[i];
+            VaultShare storage d = depositors[depositor];
+            if (d.amount > 0) {
+                d.amount += (yieldAvailable * d.amount) / (totalDeposits - yieldAvailable);
+            }
+        }
 
-        emit AutoTradeExecuted(msg.sender, tradeAmount, percentage, yieldGenerated);
+        emit Reinvested(yieldAvailable, currentLiquidity, block.timestamp);
     }
 
-    /// @notice Get auto-trade preview: how much yield a trade would generate
-    function previewAutoTrade(uint256 percentage, address user) external view returns (uint256 tradeAmount, uint256 estimatedYield) {
-        VaultShare storage depositor = depositors[user];
-        if (depositor.amount == 0 || percentage == 0 || percentage > 100) return (0, 0);
-        tradeAmount = (depositor.amount * percentage) / 100;
-        if (tradeAmount == 0) return (0, 0);
-        // Average yield ~1.5%
-        estimatedYield = (tradeAmount * 150) / 10000;
-        return (tradeAmount, estimatedYield);
+    /// @notice Preview auto-compound: shows how much yield is ready to compound
+    function previewCompound() external view returns (uint256 yieldAvailable, uint256 newTotalDeposits) {
+        return (treasuryBalance, totalDeposits + treasuryBalance);
     }
 
     function setMode(StrategyMode _newMode) external onlyAgent {
